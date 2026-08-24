@@ -33,3 +33,7 @@ export enum UserOutboxEvent {
 export const CATALOG_SERVICE = 'CATALOG_SERVICE';
 export const CATALOG_PACKAGE_NAME = 'catalog';
 export const CATALOG_EVENTS_QUEUE = 'catalog_events_queue';
+
+export const BOOKING_SERVICE = 'BOOKING_SERVICE';
+export const BOOKING_PACKAGE_NAME = 'booking';
+export const BOOKING_QUEUE = 'booking_queue';

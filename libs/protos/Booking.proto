@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package booking;
+
+service BookingService {
+  rpc HoldSeats (HoldSeatsRequest) returns (HoldSeatsResponse);
+  rpc ConfirmBooking (ConfirmBookingRequest) returns (ConfirmBookingResponse);
+  rpc CancelBooking (CancelBookingRequest) returns (CancelBookingResponse);
+  rpc GetBookingById (GetBookingByIdRequest) returns (BookingResponse);
+  rpc GetUserBookings (GetUserBookingsRequest) returns (GetUserBookingsResponse);
+}
+
+// --- Request / Response Messages ---
+
+message HoldSeatsRequest {
+  string user_id = 1;
+  string showtime_id = 2;
+  repeated string seat_ids = 3;
+}
+
+message BookingSeatItem {
+  string seat_id = 1;
+  string seat_identifier = 2;
+  string seat_type = 3;
+  double unit_price = 4;
+}
+
+message TicketItem {
+  string id = 1;
+  string seat_id = 2;
+  string ticket_number = 3;
+  string qr_code_token = 4;
+  string status = 5;
+  optional string used_at = 6;
+}
+
+message BookingResponse {
+  string id = 1;
+  string booking_reference = 2;
+  string user_id = 3;
+  string showtime_id = 4;
+  string cinema_id = 5;
+  string auditorium_id = 6;
+  double total_amount = 7;
+  string currency = 8;
+  string status = 9;
+  optional string payment_id = 10;
+  string hold_expires_at = 11;
+  optional string confirmed_at = 12;
+  string created_at = 13;
+  repeated BookingSeatItem seats = 14;
+  repeated TicketItem tickets = 15;
+}
+
+message HoldSeatsResponse {
+  BookingResponse booking = 1;
+  int32 hold_duration_seconds = 2;
+}
+
+message ConfirmBookingRequest {
+  string booking_id = 1;
+  string payment_id = 2;
+}
+
+message ConfirmBookingResponse {
+  BookingResponse booking = 1;
+}
+
+message CancelBookingRequest {
+  string booking_id = 1;
+  string user_id = 2;
+  optional string reason = 3;
+}
+
+message CancelBookingResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetBookingByIdRequest {
+  string booking_id = 1;
+  string user_id = 2;
+  bool is_admin = 3;
+}
+
+message GetUserBookingsRequest {
+  string user_id = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message GetUserBookingsResponse {
+  repeated BookingResponse bookings = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
