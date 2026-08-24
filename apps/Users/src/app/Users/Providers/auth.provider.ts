@@ -9,7 +9,11 @@ import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AccessPayloadType, RefreshPayloadType } from '@booking-ticket-system/Types';
-import { UserStatus } from '@booking-ticket-system/Utils';
+import {
+  ClientScope,
+  UserRole,
+  UserStatus,
+} from '@booking-ticket-system/Utils';
 import {
   AuthTokensResponse,
   SessionData,
@@ -38,24 +42,61 @@ export class AuthProvider {
   ) {}
 
   async login(loginDto: LoginDto): Promise<AuthTokensResponse> {
-    const { email, password, userAgent, ipAddress } = loginDto;
+    const { email, password, userAgent, ipAddress, clientScope } = loginDto;
 
     const normalizedEmail = email.trim().toLowerCase();
+    const effectiveScope =
+      clientScope === ClientScope.ADMIN_PORTAL ||
+      (clientScope as string) === 'ADMIN_PORTAL'
+        ? ClientScope.ADMIN_PORTAL
+        : ClientScope.CLIENT_WEB;
 
     const user = await this.userRepository.findOne({
       where: { email: normalizedEmail },
     });
 
-    if (!user || !user.password || !(await bcrypt.compare(password, user.password))) {
+    if (
+      !user ||
+      !user.password ||
+      !(await bcrypt.compare(password, user.password))
+    ) {
       throw new RpcException({
         code: status.UNAUTHENTICATED,
         message: 'Invalid email or password',
       });
     }
 
+    // Client Scope Authorization Check
+    if (effectiveScope === ClientScope.ADMIN_PORTAL) {
+      const allowedAdminRoles = [
+        UserRole.SUPER_ADMIN,
+        UserRole.ADMIN,
+        UserRole.CINEMA_ADMIN,
+        UserRole.STAFF,
+        UserRole.GATE_CHECKER,
+        'super_admin',
+        'admin',
+        'cinema_admin',
+        'staff',
+        'gate_checker',
+      ];
+      if (!allowedAdminRoles.includes(user.role)) {
+        throw new RpcException({
+          code: status.PERMISSION_DENIED,
+          message:
+            'Access denied: Staff or admin role required for the admin portal',
+        });
+      }
+    }
+
     await this.sessionService.validateAndResolveUserStatus(user);
 
-    return await this.sessionService.createSession(user, userAgent, ipAddress);
+    return await this.sessionService.createSession(
+      user,
+      userAgent,
+      ipAddress,
+      effectiveScope,
+    );
   }
 
   async refresh(refreshToken: string): Promise<{
@@ -136,6 +177,7 @@ export class AuthProvider {
       role: user.role,
       status: user.status,
       sessionId,
+      cinemaId: user.cinemaId || null,
     };
     const refreshPayload: RefreshPayloadType = {
       id: user.id,

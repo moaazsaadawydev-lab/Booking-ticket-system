@@ -86,6 +86,9 @@ export interface ResendVerificationCodePayload {
 export interface AuthTokensResponse {
   accessToken: string;
   refreshToken: string;
+  scope?: string;
+  role?: string;
+  cinemaId?: string | null;
 }
 
 export interface SessionData {

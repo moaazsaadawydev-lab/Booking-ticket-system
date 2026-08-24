@@ -20,7 +20,7 @@ import { CurrentUser } from '@booking-ticket-system/Decorators';
 import { TransformResponseInterceptor } from '@booking-ticket-system/Common';
 import { AuthProvider } from '../../providers';
 
-@Controller('users/auth')
+@Controller(['users/auth', 'auth'])
 @UseInterceptors(TransformResponseInterceptor)
 export class UsersAuthController {
   constructor(

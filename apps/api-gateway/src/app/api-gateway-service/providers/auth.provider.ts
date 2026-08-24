@@ -19,6 +19,7 @@ import {
   RollbackEmailDto,
   ResendVerificationCodeDto,
   UpdateUserStatusDto,
+  UpdateUserRoleDto,
 } from '@booking-ticket-system/DTOs';
 import { Users } from '@booking-ticket-system/Entities';
 
@@ -44,11 +45,15 @@ export class AuthProvider implements OnModuleInit {
         password: body.password,
         user_agent: userAgent,
         ip_address: ipAddress,
+        client_scope: body.clientScope,
       }),
     );
 
     const accessToken = result.accessToken || result.access_token;
     const refreshToken = result.refreshToken || result.refresh_token;
+    const scope = result.scope;
+    const role = result.role;
+    const cinemaId = result.cinemaId || result.cinema_id;
 
     if (refreshToken) {
       response.cookie('refreshToken', refreshToken, {
@@ -62,6 +67,10 @@ export class AuthProvider implements OnModuleInit {
 
     return {
       accessToken,
+      refreshToken,
+      scope,
+      role,
+      cinemaId,
     };
   }
 
@@ -293,6 +302,27 @@ export class AuthProvider implements OnModuleInit {
       success: result?.success ?? true,
       message: result?.message || 'User status updated successfully.',
       status: result?.status,
+    };
+  }
+
+  async updateUserRole(targetUserId: string, body: UpdateUserRoleDto, actor: any) {
+    const result: any = await lastValueFrom(
+      this.usersService.UpdateUserRole({
+        target_user_id: targetUserId,
+        role: body.role,
+        cinema_id: body.cinemaId,
+        actor_id: actor?.id,
+        actor_role: actor?.role,
+        actor_cinema_id: actor?.cinemaId,
+      }),
+    );
+
+    return {
+      success: result?.success ?? true,
+      message: result?.message || 'User role updated successfully.',
+      userId: result?.user_id || result?.userId,
+      role: result?.role,
+      cinemaId: result?.cinema_id || result?.cinemaId,
     };
   }
 

@@ -9,7 +9,11 @@ import {
   SESSION_PREFIX,
   USER_SESSIONS_PREFIX,
 } from '@booking-ticket-system/Redis';
-import { UserStatus } from '@booking-ticket-system/Utils';
+import {
+  ClientScope,
+  UserRole,
+  UserStatus,
+} from '@booking-ticket-system/Utils';
 import {
   AccessPayloadType,
   RefreshPayloadType,
@@ -119,14 +123,18 @@ export class SessionService {
     user: Users,
     userAgent?: string,
     ipAddress?: string,
+    clientScope?: ClientScope | string,
   ): Promise<AuthTokensResponse> {
     const sessionId = randomUUID();
+    const effectiveScope = clientScope || ClientScope.CLIENT_WEB;
 
     const accessPayload: AccessPayloadType = {
       id: user.id,
       role: user.role,
       status: user.status,
       sessionId,
+      cinemaId: user.cinemaId || null,
+      scope: effectiveScope,
     };
 
     const refreshPayload: RefreshPayloadType = {
@@ -178,6 +186,9 @@ export class SessionService {
     return {
       accessToken,
       refreshToken,
+      scope: effectiveScope,
+      role: user.role,
+      cinemaId: user.cinemaId || null,
     };
   }
 }

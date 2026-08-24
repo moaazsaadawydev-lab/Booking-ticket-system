@@ -1,0 +1,9 @@
+{
+  "name": "cinema-web",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/cinema-web",
+  "projectType": "application",
+  "tags": [],
+  "// targets": "to see all targets run: nx show project cinema-web --web",
+  "targets": {}
+}

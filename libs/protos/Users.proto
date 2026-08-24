@@ -18,6 +18,7 @@ service UsersService {
   rpc RollbackEmail(RollbackEmailRequest) returns (RollbackEmailResponse) {}
   rpc ResendVerificationCode(ResendVerificationCodeRequest) returns (ResendVerificationCodeResponse) {}
   rpc UpdateUserStatus(UpdateUserStatusRequest) returns (UpdateUserStatusResponse) {}
+  rpc UpdateUserRole(UpdateUserRoleRequest) returns (UpdateUserRoleResponse) {}
   rpc Logout(LogoutRequest) returns (LogoutResponse) {}
   rpc GoogleLogin(GoogleLoginRequest) returns (LoginResponse) {}
 }
@@ -74,11 +75,15 @@ message LoginRequest {
   string password = 2;
   optional string user_agent = 3;
   optional string ip_address = 4;
+  optional string client_scope = 5;
 }
 
 message LoginResponse {
   string access_token = 1;
   string refresh_token = 2;
+  optional string scope = 3;
+  optional string role = 4;
+  optional string cinema_id = 5;
 }
 
 message CurrentUserRequest {
@@ -98,6 +103,7 @@ message CurrentUserResponse {
   optional string suspended_until = 10;
   optional string status_changed_at = 11;
   string role = 12;
+  optional string cinema_id = 13;
 }
 
 message RefreshTokenRequest {
@@ -135,6 +141,7 @@ message UpdateProfileResponse {
   optional string suspended_until = 9;
   optional string status_changed_at = 10;
   string role = 11;
+  optional string cinema_id = 12;
 }
 
 message ChangePasswordRequest {
@@ -216,8 +223,8 @@ message ResendVerificationCodeRequest {
 }
 
 message ResendVerificationCodeResponse {
-  bool success = 1;
-  string message = 2;
+  string message = 1;
+  bool success = 2;
 }
 
 message UpdateUserStatusRequest {
@@ -231,6 +238,23 @@ message UpdateUserStatusResponse {
   bool success = 1;
   string message = 2;
   string status = 3;
+}
+
+message UpdateUserRoleRequest {
+  string target_user_id = 1;
+  string role = 2;
+  optional string cinema_id = 3;
+  string actor_id = 4;
+  string actor_role = 5;
+  optional string actor_cinema_id = 6;
+}
+
+message UpdateUserRoleResponse {
+  bool success = 1;
+  string message = 2;
+  string user_id = 3;
+  string role = 4;
+  optional string cinema_id = 5;
 }
 
 message LogoutRequest {
@@ -252,4 +276,3 @@ message GoogleLoginRequest {
   optional string user_agent = 6;
   optional string ip_address = 7;
 }
-

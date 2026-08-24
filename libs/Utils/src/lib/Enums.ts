@@ -1,3 +1,8 @@
+export enum ClientScope {
+  CLIENT_WEB = 'CLIENT_WEB',
+  ADMIN_PORTAL = 'ADMIN_PORTAL',
+}
+
 export enum UserRole {
   SUPER_ADMIN = 'super_admin',
   ADMIN = 'admin',

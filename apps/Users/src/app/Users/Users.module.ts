@@ -30,6 +30,7 @@ import {
   RollbackEmailProvider,
   ResendVerificationCodeProvider,
   UpdateUserStatusProvider,
+  UpdateUserRoleProvider,
   LogoutProvider,
   GoogleLoginProvider,
 } from './Providers';
@@ -104,6 +105,7 @@ import {
     RollbackEmailProvider,
     ResendVerificationCodeProvider,
     UpdateUserStatusProvider,
+    UpdateUserRoleProvider,
     LogoutProvider,
     GoogleLoginProvider,
     SanitizeUserInterceptor,
@@ -124,6 +126,7 @@ import {
     RollbackEmailProvider,
     ResendVerificationCodeProvider,
     UpdateUserStatusProvider,
+    UpdateUserRoleProvider,
     LogoutProvider,
     GoogleLoginProvider,
     SanitizeUserInterceptor,

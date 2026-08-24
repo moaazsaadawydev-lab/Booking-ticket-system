@@ -76,6 +76,9 @@ export class Users {
   })
   role!: UserRole;
 
+  @Column({ type: 'uuid', nullable: true, default: null })
+  cinemaId!: string | null;
+
   @Index()
   @Column({
     type: 'enum',

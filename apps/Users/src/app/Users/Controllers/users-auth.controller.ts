@@ -30,6 +30,7 @@ export class UsersAuthController {
       password: data.password,
       userAgent: data.userAgent || data.user_agent,
       ipAddress: data.ipAddress || data.ip_address,
+      clientScope: data.clientScope || data.client_scope,
     };
     return await this.authProvider.login(loginDto);
   }
