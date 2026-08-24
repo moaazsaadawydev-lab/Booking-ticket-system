@@ -139,3 +139,20 @@ export enum TicketStatus {
   CANCELLED = 'CANCELLED',
 }
 
+export enum PaymentMethod {
+  CARD = 'CARD',
+  WALLET = 'WALLET',
+}
+
+export enum PaymentStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  SUCCEEDED = 'SUCCEEDED',
+  FAILED = 'FAILED',
+  REFUNDED = 'REFUNDED',
+}
+
+export enum PaymentProvider {
+  PAYMOB = 'PAYMOB',
+}
+

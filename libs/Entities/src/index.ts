@@ -14,3 +14,6 @@ export * from './lib/booking.entity';
 export * from './lib/booking-seat.entity';
 export * from './lib/ticket.entity';
 export * from './lib/booking-outbox.entity';
+export * from './lib/payment.entity';
+export * from './lib/payment-log.entity';
+export * from './lib/payment-outbox.entity';
