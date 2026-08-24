@@ -165,12 +165,19 @@ export class ProcessWebhookProvider {
               paymentId: savedPayment.id,
               bookingId: savedPayment.bookingId,
               userId: savedPayment.userId,
-              amount: savedPayment.amount,
+              amount: Number(savedPayment.amount),
               currency: savedPayment.currency,
               providerTransactionId: transactionId,
-              providerOrderId: savedPayment.providerOrderId,
-              method: savedPayment.method,
-              status: savedPayment.status,
+              providerOrderId: obj.order?.id,
+              paidAt: obj.created_at || new Date().toISOString(),
+              customerEmail:
+                obj.order?.shipping_data?.email ||
+                obj.customer?.email ||
+                null,
+              customerName:
+                `${obj.order?.shipping_data?.first_name || ''} ${obj.order?.shipping_data?.last_name || ''}`.trim() ||
+                `${obj.customer?.first_name || ''} ${obj.customer?.last_name || ''}`.trim() ||
+                null,
               failureReason: savedPayment.failureReason,
               timestamp: new Date().toISOString(),
             },

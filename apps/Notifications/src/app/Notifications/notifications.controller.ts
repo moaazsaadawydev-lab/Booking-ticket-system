@@ -696,6 +696,15 @@ export class NotificationController {
       totalAmount: number;
       paymentId: string;
       confirmedAt: string;
+      customerEmail?: string;
+      customerName?: string;
+      email?: string;
+      name?: string;
+      movieTitle?: string;
+      cinemaName?: string;
+      auditoriumName?: string;
+      startTime?: string;
+      showtimeFormatted?: string;
       tickets?: Array<{
         id: string;
         seatId: string;
@@ -717,29 +726,42 @@ export class NotificationController {
       `[NotificationsService] 🎟️ Received booking.confirmed for booking ${data.bookingReference} (Payment: ${data.paymentId})`,
     );
 
-    // Generate in-memory QR Code PNG buffers for each ticket
+    // Generate in-memory QR Code PNG buffers & Base64 Data URLs for each ticket
     const tickets = data.tickets || [];
-    const generatedQrBuffers: { ticketId: string; ticketNumber: string; qrLength: number }[] = [];
+    const emailTickets: any[] = [];
+
     for (const ticket of tickets) {
+      let qrDataUrl = '';
+      let qrBase64 = '';
+      const qrCid = `qr_${ticket.ticketNumber.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
       if (ticket.qrCodeToken) {
         try {
           const qrBuffer = await this.qrCodeService.generateQrBuffer(ticket.qrCodeToken);
-          generatedQrBuffers.push({
-            ticketId: ticket.id,
-            ticketNumber: ticket.ticketNumber,
-            qrLength: qrBuffer.length,
-          });
+          qrDataUrl = await this.qrCodeService.generateQrDataUrl(ticket.qrCodeToken);
+          qrBase64 = qrBuffer.toString('base64');
         } catch (qrErr: any) {
           this.logger.warn(
             `Failed to generate in-memory QR for ticket ${ticket.ticketNumber}: ${qrErr.message}`,
           );
         }
       }
+
+      emailTickets.push({
+        id: ticket.id,
+        seatId: ticket.seatId,
+        seatIdentifier: ticket.seatIdentifier || 'Standard Seat',
+        ticketNumber: ticket.ticketNumber,
+        qrCodeToken: ticket.qrCodeToken,
+        qrDataUrl,
+        qrBase64,
+        qrCid,
+      });
     }
 
-    if (generatedQrBuffers.length > 0) {
+    if (emailTickets.length > 0) {
       this.logger.log(
-        `[NotificationsService] ⚡ Generated ${generatedQrBuffers.length} in-memory QR code buffers for tickets of booking ${data.bookingReference}`,
+        `[NotificationsService] ⚡ Generated ${emailTickets.length} in-memory QR code buffers for tickets of booking ${data.bookingReference}`,
       );
     }
 
@@ -750,22 +772,54 @@ export class NotificationController {
       type: NotificationType.ALERT_MESSAGE,
     };
 
+    const recipientEmail = data.customerEmail || data.email || null;
+    const emailContext = {
+      customerName: data.customerName || data.name || 'Valued Customer',
+      bookingReference: data.bookingReference,
+      paymentId: data.paymentId || 'N/A',
+      totalAmount: data.totalAmount,
+      movieTitle: data.movieTitle || 'Special Feature Movie',
+      cinemaName: data.cinemaName || 'Aflamak Cinema',
+      auditoriumName: data.auditoriumName || 'VIP Hall 1',
+      showtimeFormatted:
+        data.showtimeFormatted ||
+        (data.startTime
+          ? new Date(data.startTime).toLocaleString('en-US')
+          : 'Reserved Showtime'),
+      confirmedAtFormatted: data.confirmedAt
+        ? new Date(data.confirmedAt).toLocaleString('en-US')
+        : new Date().toLocaleString('en-US'),
+      ticketsCount: emailTickets.length,
+      tickets: emailTickets,
+    };
+
+    const emailInfo = recipientEmail
+      ? {
+          email: recipientEmail,
+          template: 'BookingConfirmed',
+          context: emailContext,
+        }
+      : undefined;
+
     try {
       await this.NotificationsService.createNotification(
         notificationDto,
-        undefined,
+        emailInfo,
         sourceEventId,
       );
       channel.ack(originalMsg);
     } catch (error: any) {
       if (error?.code === '23505') {
+        this.logger.warn(
+          `Unique constraint violation (23505) for event ${sourceEventId}. Treating as already processed.`,
+        );
         channel.ack(originalMsg);
         return;
       }
       this.logger.error(
         `Failed to process booking.confirmed event for booking ${data.bookingId}: ${error.message}`,
       );
-      const isRedelivered = originalMsg.fields.redelivered;
+      const isRedelivered = originalMsg.fields?.redelivered;
       channel.nack(originalMsg, false, !isRedelivered);
     }
   }

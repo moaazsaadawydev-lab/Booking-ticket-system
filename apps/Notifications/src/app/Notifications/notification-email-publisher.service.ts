@@ -25,7 +25,7 @@ export class NotificationEmailPublisherService implements OnModuleInit {
     });
   }
 
-  @Cron('0/15 * * * * *')
+  @Cron('0/5 * * * * *')
   async publishPendingEmails() {
     const pendingNotifications = await this.notificationRepository.find({
       where: {
@@ -41,32 +41,49 @@ export class NotificationEmailPublisherService implements OnModuleInit {
     for (const notification of pendingNotifications) {
       try {
         const subject =
-          notification.emailTemplate === 'PasswordChanged'
-            ? notification.title || 'Security Alert: Password Changed'
-            : notification.emailTemplate === 'ForgotPassword'
-              ? notification.title || 'Reset Your Password - Verification Code'
-              : notification.emailTemplate === 'EmailChangeOtp'
-                ? notification.title || 'Confirm Your New Email Address'
-                : notification.emailTemplate === 'EmailChangeSecurityAlert'
-                  ? notification.title || 'Security Alert: Email Change Requested'
-                  : notification.emailTemplate === 'EmailChangeSuccessAlert'
-                    ? notification.title || 'Security Notice: Email Address Changed'
-                    : notification.emailTemplate === 'AccountRecoveredAlert'
-                      ? notification.title || 'Account Restored Successfully'
-                      : notification.title || 'Activate Your Account - Aflamak';
+          notification.emailTemplate === 'BookingConfirmed'
+            ? notification.title ||
+              `🎬 Booking Confirmed! (${notification.emailContext?.bookingReference || 'E-Tickets'})`
+            : notification.emailTemplate === 'PasswordChanged'
+              ? notification.title || 'Security Alert: Password Changed'
+              : notification.emailTemplate === 'ForgotPassword'
+                ? notification.title || 'Reset Your Password - Verification Code'
+                : notification.emailTemplate === 'EmailChangeOtp'
+                  ? notification.title || 'Confirm Your New Email Address'
+                  : notification.emailTemplate === 'EmailChangeSecurityAlert'
+                    ? notification.title || 'Security Alert: Email Change Requested'
+                    : notification.emailTemplate === 'EmailChangeSuccessAlert'
+                      ? notification.title || 'Security Notice: Email Address Changed'
+                      : notification.emailTemplate === 'AccountRecoveredAlert'
+                        ? notification.title || 'Account Restored Successfully'
+                        : notification.title || 'Activate Your Account - Aflamak';
+
+        let attachments: any[] | undefined = undefined;
+        if (
+          notification.emailTemplate === 'BookingConfirmed' &&
+          notification.emailContext?.tickets
+        ) {
+          attachments = notification.emailContext.tickets
+            .filter((t: any) => t.qrBase64 && t.qrCid)
+            .map((t: any) => ({
+              filename: `${t.ticketNumber}.png`,
+              content: Buffer.from(t.qrBase64, 'base64'),
+              cid: t.qrCid,
+            }));
+        }
 
         await this.mailerService.sendMail({
           to: notification.email!,
           subject,
           template: notification.emailTemplate || 'ActiveYourEmail',
           context: notification.emailContext || {},
+          attachments: attachments && attachments.length > 0 ? attachments : undefined,
         });
-
 
         notification.emailStatus = EmailStatus.SENT;
         await this.notificationRepository.save(notification);
         this.logger.log(
-          `✅ Email sent successfully for notification ${notification.id} to ${notification.email}`,
+          `✅ Email sent successfully for notification ${notification.id} (${notification.emailTemplate}) to ${notification.email}`,
         );
       } catch (error: any) {
         notification.emailRetryCount += 1;

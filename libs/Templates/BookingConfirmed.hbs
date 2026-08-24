@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Booking Confirmed - {{bookingReference}}</title>
+    <style>
+      body {
+        background-color: #0f172a;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        color: #f8fafc;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrapper {
+        width: 100%;
+        background-color: #0f172a;
+        padding: 40px 0;
+      }
+      .container {
+        max-width: 580px;
+        margin: 0 auto;
+        background-color: #1e293b;
+        border-radius: 20px;
+        border: 1px solid #334155;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+      }
+      .accent-bar {
+        height: 6px;
+        background: linear-gradient(90deg, #f59e0b 0%, #ef4444 50%, #ec4899 100%);
+      }
+      .header {
+        padding: 36px 40px 24px;
+        text-align: center;
+        background: linear-gradient(180deg, rgba(245, 158, 11, 0.08) 0%, rgba(30, 41, 59, 0) 100%);
+      }
+      .logo {
+        font-size: 26px;
+        font-weight: 800;
+        color: #f8fafc;
+        letter-spacing: -0.5px;
+        display: inline-block;
+        margin-bottom: 12px;
+      }
+      .logo-icon {
+        color: #f59e0b;
+        margin-right: 6px;
+      }
+      .headline {
+        color: #ffffff;
+        font-size: 24px;
+        font-weight: 800;
+        margin: 8px 0;
+      }
+      .subheadline {
+        color: #94a3b8;
+        font-size: 15px;
+        margin: 0;
+      }
+      .content {
+        padding: 10px 40px 36px;
+      }
+      .booking-card {
+        background-color: #0f172a;
+        border: 1px solid #334155;
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 24px;
+      }
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #1e293b;
+        font-size: 14px;
+      }
+      .info-row:last-child {
+        border-bottom: none;
+      }
+      .info-label {
+        color: #94a3b8;
+        font-weight: 500;
+      }
+      .info-value {
+        color: #f8fafc;
+        font-weight: 700;
+        text-align: right;
+      }
+      .highlight-ref {
+        color: #f59e0b;
+        font-family: 'Courier New', monospace;
+        font-size: 16px;
+      }
+      .movie-banner {
+        background: linear-gradient(135deg, #1e1b4b 0%, #311042 100%);
+        border: 1px solid #4338ca;
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 24px;
+        text-align: center;
+      }
+      .movie-title {
+        color: #ffffff;
+        font-size: 20px;
+        font-weight: 800;
+        margin: 0 0 6px;
+      }
+      .movie-details {
+        color: #c7d2fe;
+        font-size: 14px;
+        margin: 0;
+      }
+      .section-title {
+        color: #e2e8f0;
+        font-size: 16px;
+        font-weight: 700;
+        margin: 28px 0 16px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+      }
+      .ticket-container {
+        margin-bottom: 20px;
+      }
+      .ticket-card {
+        background: #ffffff;
+        color: #0f172a;
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 16px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      }
+      .ticket-header {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 2px dashed #cbd5e1;
+        padding-bottom: 12px;
+        margin-bottom: 16px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #475569;
+      }
+      .ticket-qr {
+        display: inline-block;
+        background: #ffffff;
+        padding: 8px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        margin: 8px 0 12px;
+      }
+      .ticket-qr img {
+        display: block;
+        width: 160px;
+        height: 160px;
+      }
+      .ticket-number {
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        font-weight: 800;
+        color: #0f172a;
+        letter-spacing: 1px;
+        margin-top: 4px;
+      }
+      .seat-badge {
+        display: inline-block;
+        background-color: #f59e0b;
+        color: #0f172a;
+        font-weight: 800;
+        font-size: 13px;
+        padding: 4px 12px;
+        border-radius: 20px;
+      }
+      .instructions {
+        background-color: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 24px;
+        font-size: 13px;
+        line-height: 20px;
+        color: #fde68a;
+      }
+      .instructions strong {
+        color: #f59e0b;
+      }
+      .footer {
+        background-color: #0f172a;
+        padding: 24px 40px;
+        border-top: 1px solid #334155;
+        text-align: center;
+      }
+      .footer-text {
+        color: #64748b;
+        font-size: 12px;
+        line-height: 18px;
+        margin: 0;
+      }
+      .footer-copyright {
+        color: #64748b;
+        font-size: 11px;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="container">
+        <div class="accent-bar"></div>
+        <div class="header">
+          <div class="logo">
+            <span class="logo-icon">🎟️</span> Aflamak Cinemas
+          </div>
+          <h1 class="headline">Booking Confirmed!</h1>
+          <p class="subheadline">Hi {{customerName}}, your movie tickets are ready!</p>
+        </div>
+
+        <div class="content">
+          <!-- Movie Details Banner -->
+          <div class="movie-banner">
+            <h2 class="movie-title">{{movieTitle}}</h2>
+            <p class="movie-details">
+              📍 {{cinemaName}} &bull; {{auditoriumName}}<br />
+              🗓️ {{showtimeFormatted}}
+            </p>
+          </div>
+
+          <!-- Booking Summary -->
+          <div class="booking-card">
+            <table width="100%" cellpadding="6" cellspacing="0" style="color: #f8fafc; font-size: 14px;">
+              <tr>
+                <td style="color: #94a3b8;">Booking Reference:</td>
+                <td align="right" class="highlight-ref">{{bookingReference}}</td>
+              </tr>
+              <tr>
+                <td style="color: #94a3b8;">Payment Reference:</td>
+                <td align="right" style="font-family: monospace; font-size: 12px; color: #cbd5e1;">{{paymentId}}</td>
+              </tr>
+              <tr>
+                <td style="color: #94a3b8;">Total Paid:</td>
+                <td align="right" style="color: #10b981; font-weight: 800; font-size: 16px;">{{totalAmount}} EGP</td>
+              </tr>
+              <tr>
+                <td style="color: #94a3b8;">Confirmed At:</td>
+                <td align="right" style="color: #cbd5e1;">{{confirmedAtFormatted}}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Tickets Section -->
+          <div class="section-title">Your E-Tickets ({{ticketsCount}})</div>
+          <div class="ticket-container">
+            {{#each tickets}}
+            <div class="ticket-card">
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 12px; border-bottom: 2px dashed #cbd5e1; padding-bottom: 8px;">
+                <tr>
+                  <td align="left" style="font-weight: 700; color: #334155; font-size: 14px;">
+                    Seat: <span class="seat-badge">{{seatIdentifier}}</span>
+                  </td>
+                  <td align="right" style="font-weight: 600; color: #64748b; font-size: 12px;">
+                    STATUS: ISSUED
+                  </td>
+                </tr>
+              </table>
+
+              <div class="ticket-qr">
+                {{#if qrCid}}
+                <img src="cid:{{qrCid}}" alt="QR Code" width="160" height="160" />
+                {{else}}
+                <img src="{{qrDataUrl}}" alt="QR Code" width="160" height="160" />
+                {{/if}}
+              </div>
+
+              <div class="ticket-number">{{ticketNumber}}</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Scan at the cinema entrance scanner</div>
+            </div>
+            {{/each}}
+          </div>
+
+          <!-- Instructions Notice -->
+          <div class="instructions">
+            <strong>⚠️ Important Notice:</strong><br />
+            Please arrive at the cinema at least 15 minutes before the show starts. You can present either this digital ticket QR code or scan it directly from your mobile device.
+          </div>
+        </div>
+
+        <div class="footer">
+          <p class="footer-text">
+            Need help with your booking? Contact support at support@aflamak.com
+          </p>
+          <p class="footer-copyright">
+            &copy; 2026 Aflamak Cinema Booking System. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

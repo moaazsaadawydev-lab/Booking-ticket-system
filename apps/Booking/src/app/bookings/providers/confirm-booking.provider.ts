@@ -8,13 +8,28 @@ import { BookingStatus, TicketStatus, OutboxStatus } from '@booking-ticket-syste
 import { BookingOutboxEvent } from '@booking-ticket-system/Constants';
 import { mapToBookingResponse } from '../utils/booking-mapper';
 
+export interface ConfirmBookingExtraDetails {
+  customerEmail?: string;
+  customerName?: string;
+  email?: string;
+  name?: string;
+  movieTitle?: string;
+  cinemaName?: string;
+  auditoriumName?: string;
+  startTime?: string;
+}
+
 @Injectable()
 export class ConfirmBookingProvider {
   private readonly logger = new Logger(ConfirmBookingProvider.name);
 
   constructor(private readonly dataSource: DataSource) {}
 
-  async execute(bookingId: string, paymentId: string): Promise<any> {
+  async execute(
+    bookingId: string,
+    paymentId: string,
+    extraDetails?: ConfirmBookingExtraDetails,
+  ): Promise<any> {
     if (!bookingId) {
       throw new RpcException({
         code: status.INVALID_ARGUMENT,
@@ -106,6 +121,12 @@ export class ConfirmBookingProvider {
             totalAmount: updatedBooking.totalAmount,
             paymentId: updatedBooking.paymentId,
             confirmedAt: updatedBooking.confirmedAt?.toISOString(),
+            customerEmail: extraDetails?.customerEmail || extraDetails?.email,
+            customerName: extraDetails?.customerName || extraDetails?.name,
+            movieTitle: extraDetails?.movieTitle,
+            cinemaName: extraDetails?.cinemaName,
+            auditoriumName: extraDetails?.auditoriumName,
+            startTime: extraDetails?.startTime,
             tickets: (updatedBooking.tickets || []).map((t) => ({
               id: t.id,
               seatId: t.seatId,

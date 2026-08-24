@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { RedisModule } from '@booking-ticket-system/Redis';
 import {
   Payment,
@@ -16,10 +17,12 @@ import {
   ProcessWebhookProvider,
   GetPaymentProvider,
 } from './providers';
+import { PaymentOutboxModule } from './outbox';
 
 @Module({
   imports: [
     RedisModule,
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: `libs/env/.env.${process.env['NODE_ENV'] || 'development'}`,
@@ -41,6 +44,7 @@ import {
       }),
     }),
     TypeOrmModule.forFeature([Payment, PaymentLog, PaymentOutbox]),
+    PaymentOutboxModule,
   ],
   controllers: [AppController, PaymentsController],
   providers: [
@@ -56,6 +60,7 @@ import {
     ProcessWebhookProvider,
     GetPaymentProvider,
     TypeOrmModule,
+    PaymentOutboxModule,
   ],
 })
 export class AppModule {}
