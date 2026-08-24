@@ -219,6 +219,38 @@ services:
     networks:
       - booking-network
 
+  cinema-web:
+    build:
+      context: .
+      dockerfile: apps/cinema-web/Dockerfile
+    container_name: cinema-web
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+    ports:
+      - '3001:3000'
+    depends_on:
+      - api-gateway
+    networks:
+      - booking-network
+
+  admin-dashboard:
+    build:
+      context: .
+      dockerfile: apps/admin-dashboard/Dockerfile
+    container_name: admin-dashboard
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+    ports:
+      - '3002:3000'
+    depends_on:
+      - api-gateway
+    networks:
+      - booking-network
+
 networks:
   booking-network:
     driver: bridge
@@ -228,4 +260,3 @@ volumes:
   rabbitmq_data:
   minio_data:
   redis_data:
-
