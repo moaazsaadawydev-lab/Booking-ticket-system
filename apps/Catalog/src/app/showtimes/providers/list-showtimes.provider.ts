@@ -102,6 +102,7 @@ export class ListShowtimesProvider {
               original_language: showtime.movie.originalLanguage,
               poster_url: showtime.movie.posterUrl,
               banner_url: showtime.movie.bannerUrl,
+              trailer_url: showtime.movie.trailerUrl || null,
               rating_average: Number(showtime.movie.ratingAverage) || 0,
               rating_count: showtime.movie.ratingCount || 0,
               genres: (showtime.movie.genres || []).map((g) => ({

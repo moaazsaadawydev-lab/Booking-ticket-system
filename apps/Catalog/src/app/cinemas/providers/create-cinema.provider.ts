@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { Cinema, CinemaAdmin } from '@booking-ticket-system/Entities';
+import { randomUUID } from 'crypto';
+import { Cinema, CinemaAdmin, OutboxMessage } from '@booking-ticket-system/Entities';
 import { CreateCinemaDto } from '@booking-ticket-system/DTOs';
-import { slugify } from '@booking-ticket-system/Utils';
+import { ImageProfileType, OutboxStatus, slugify } from '@booking-ticket-system/Utils';
 import { CatalogCacheService } from '../../cache/catalog-cache.service';
 
 @Injectable()
@@ -27,13 +28,51 @@ export class CreateCinemaProvider {
       slug = `${slug}-${slugify(dto.city)}-${Date.now().toString().slice(-4)}`;
     }
 
+    const cinemaId = randomUUID();
     const description = dto.description ?? (dto as any).description ?? null;
     const country = dto.country ?? (dto as any).country ?? 'EG';
-    const thumbnailUrl = dto.thumbnailUrl ?? (dto as any).thumbnail_url ?? null;
-    const galleryUrls = dto.galleryUrls ?? (dto as any).gallery_urls ?? [];
+    const rawThumbnailUrl = dto.thumbnailUrl ?? (dto as any).thumbnail_url ?? null;
+    const rawGalleryUrls: string[] = dto.galleryUrls ?? (dto as any).gallery_urls ?? [];
     const phoneNumber = dto.phoneNumber ?? (dto as any).phone_number ?? null;
     const isActive = dto.isActive !== undefined ? dto.isActive : (dto as any).is_active !== undefined ? (dto as any).is_active : true;
     const adminUserIds: string[] = dto.adminUserIds ?? (dto as any).admin_user_ids ?? [];
+
+    const outboxItems: Array<{
+      bucket: string;
+      tempKey: string;
+      finalKey: string;
+      profileType: ImageProfileType;
+    }> = [];
+
+    // Resolve Cinema Thumbnail
+    let resolvedThumbnailUrl = rawThumbnailUrl;
+    if (rawThumbnailUrl && rawThumbnailUrl.startsWith('temp/')) {
+      const finalKey = `cinemas/${cinemaId}/thumbnails/${randomUUID()}.webp`;
+      outboxItems.push({
+        bucket: 'catalog',
+        tempKey: rawThumbnailUrl,
+        finalKey,
+        profileType: ImageProfileType.CINEMA_THUMBNAIL,
+      });
+      resolvedThumbnailUrl = finalKey;
+    }
+
+    // Resolve Cinema Gallery
+    const resolvedGalleryUrls: string[] = [];
+    for (const item of rawGalleryUrls) {
+      if (item && item.startsWith('temp/')) {
+        const finalKey = `cinemas/${cinemaId}/gallery/${randomUUID()}.webp`;
+        outboxItems.push({
+          bucket: 'catalog',
+          tempKey: item,
+          finalKey,
+          profileType: ImageProfileType.CINEMA_GALLERY,
+        });
+        resolvedGalleryUrls.push(finalKey);
+      } else if (item) {
+        resolvedGalleryUrls.push(item);
+      }
+    }
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -41,6 +80,7 @@ export class CreateCinemaProvider {
 
     try {
       const cinema = queryRunner.manager.create(Cinema, {
+        id: cinemaId,
         name: dto.name,
         slug,
         city: dto.city,
@@ -51,8 +91,8 @@ export class CreateCinemaProvider {
         longitude: dto.longitude ?? null,
         phoneNumber,
         facilities: dto.facilities || [],
-        thumbnailUrl,
-        galleryUrls,
+        thumbnailUrl: resolvedThumbnailUrl,
+        galleryUrls: resolvedGalleryUrls,
         isActive,
       });
 
@@ -68,8 +108,23 @@ export class CreateCinemaProvider {
         await queryRunner.manager.save(CinemaAdmin, adminEntities);
       }
 
+      // Save atomic Outbox rows for each media item
+      for (const item of outboxItems) {
+        const outbox = queryRunner.manager.create(OutboxMessage, {
+          eventType: 'PROCESS_CATALOG_MEDIA',
+          payload: {
+            bucket: item.bucket,
+            tempKey: item.tempKey,
+            finalKey: item.finalKey,
+            profileType: item.profileType,
+          },
+          status: OutboxStatus.PENDING,
+        });
+        await queryRunner.manager.save(OutboxMessage, outbox);
+      }
+
       await queryRunner.commitTransaction();
-      this.logger.log(`Created cinema "${savedCinema.name}" (ID: ${savedCinema.id})`);
+      this.logger.log(`Created cinema "${savedCinema.name}" (ID: ${savedCinema.id}) with ${outboxItems.length} media processing jobs`);
 
       await this.cacheService.invalidatePatterns(['catalog:feed:*']);
 

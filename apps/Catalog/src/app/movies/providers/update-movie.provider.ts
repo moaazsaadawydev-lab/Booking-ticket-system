@@ -1,11 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
-import { Genre, Movie } from '@booking-ticket-system/Entities';
+import { randomUUID } from 'crypto';
+import { Genre, Movie, OutboxMessage } from '@booking-ticket-system/Entities';
 import { UpdateMovieDto } from '@booking-ticket-system/DTOs';
-import { slugify } from '@booking-ticket-system/Utils';
+import { ImageProfileType, OutboxStatus, slugify } from '@booking-ticket-system/Utils';
 import { CatalogCacheService } from '../../cache/catalog-cache.service';
 
 @Injectable()
@@ -17,6 +18,7 @@ export class UpdateMovieProvider {
     private readonly movieRepository: Repository<Movie>,
     @InjectRepository(Genre)
     private readonly genreRepository: Repository<Genre>,
+    private readonly dataSource: DataSource,
     private readonly cacheService: CatalogCacheService,
   ) {}
 
@@ -64,10 +66,10 @@ export class UpdateMovieProvider {
     const countryOfOrigin = dto.countryOfOrigin ?? (dto as any).country_of_origin;
     const originalLanguage = dto.originalLanguage ?? (dto as any).original_language;
     const spokenLanguages = dto.spokenLanguages ?? (dto as any).spoken_languages;
-    const posterUrl = dto.posterUrl ?? (dto as any).poster_url;
-    const bannerUrl = dto.bannerUrl ?? (dto as any).banner_url;
+    const rawPosterUrl = dto.posterUrl ?? (dto as any).poster_url ?? (dto as any).thumbnailUrl ?? (dto as any).thumbnail_url;
+    const rawBannerUrl = dto.bannerUrl ?? (dto as any).banner_url ?? (dto as any).coverUrl ?? (dto as any).cover_url;
     const trailerUrl = dto.trailerUrl ?? (dto as any).trailer_url;
-    const galleryUrls = dto.galleryUrls ?? (dto as any).gallery_urls;
+    const rawGalleryUrls = dto.galleryUrls ?? (dto as any).gallery_urls;
     const genreIds = dto.genreIds ?? (dto as any).genre_ids;
 
     if (dto.description !== undefined) movie.description = dto.description;
@@ -79,10 +81,7 @@ export class UpdateMovieProvider {
     if (originalLanguage !== undefined) movie.originalLanguage = originalLanguage;
     if (spokenLanguages !== undefined) movie.spokenLanguages = spokenLanguages;
     if (dto.subtitles !== undefined) movie.subtitles = dto.subtitles;
-    if (posterUrl !== undefined) movie.posterUrl = posterUrl;
-    if (bannerUrl !== undefined) movie.bannerUrl = bannerUrl;
     if (trailerUrl !== undefined) movie.trailerUrl = trailerUrl;
-    if (galleryUrls !== undefined) movie.galleryUrls = galleryUrls;
     if (dto.directors !== undefined) movie.directors = dto.directors;
     if (dto.cast !== undefined) movie.cast = dto.cast;
 
@@ -96,13 +95,100 @@ export class UpdateMovieProvider {
       }
     }
 
-    const updated = await this.movieRepository.save(movie);
-    this.logger.log(`Updated movie "${updated.title}" (ID: ${updated.id})`);
+    const outboxItems: Array<{
+      bucket: string;
+      tempKey: string;
+      finalKey: string;
+      profileType: ImageProfileType;
+    }> = [];
 
-    await this.cacheService.invalidateTags([`movie:${id}`]);
-    await this.cacheService.invalidatePatterns(['catalog:feed:*']);
+    // Resolve Poster / Thumbnail
+    if (rawPosterUrl !== undefined) {
+      if (rawPosterUrl && rawPosterUrl.startsWith('temp/')) {
+        const finalKey = `movies/${movie.id}/thumbnails/${randomUUID()}.webp`;
+        outboxItems.push({
+          bucket: 'catalog',
+          tempKey: rawPosterUrl,
+          finalKey,
+          profileType: ImageProfileType.MOVIE_THUMBNAIL,
+        });
+        movie.posterUrl = finalKey;
+      } else {
+        movie.posterUrl = rawPosterUrl;
+      }
+    }
 
-    return this.mapToResponse(updated);
+    // Resolve Banner / Cover
+    if (rawBannerUrl !== undefined) {
+      if (rawBannerUrl && rawBannerUrl.startsWith('temp/')) {
+        const finalKey = `movies/${movie.id}/covers/${randomUUID()}.webp`;
+        outboxItems.push({
+          bucket: 'catalog',
+          tempKey: rawBannerUrl,
+          finalKey,
+          profileType: ImageProfileType.MOVIE_COVER,
+        });
+        movie.bannerUrl = finalKey;
+      } else {
+        movie.bannerUrl = rawBannerUrl;
+      }
+    }
+
+    // Resolve Gallery
+    if (rawGalleryUrls !== undefined) {
+      const resolvedGallery: string[] = [];
+      for (const item of rawGalleryUrls) {
+        if (item && item.startsWith('temp/')) {
+          const finalKey = `movies/${movie.id}/gallery/${randomUUID()}.webp`;
+          outboxItems.push({
+            bucket: 'catalog',
+            tempKey: item,
+            finalKey,
+            profileType: ImageProfileType.MOVIE_GALLERY,
+          });
+          resolvedGallery.push(finalKey);
+        } else if (item) {
+          resolvedGallery.push(item);
+        }
+      }
+      movie.galleryUrls = resolvedGallery;
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const updated = await queryRunner.manager.save(Movie, movie);
+
+      // Save atomic Outbox rows for each media item
+      for (const item of outboxItems) {
+        const outbox = queryRunner.manager.create(OutboxMessage, {
+          eventType: 'PROCESS_CATALOG_MEDIA',
+          payload: {
+            bucket: item.bucket,
+            tempKey: item.tempKey,
+            finalKey: item.finalKey,
+            profileType: item.profileType,
+          },
+          status: OutboxStatus.PENDING,
+        });
+        await queryRunner.manager.save(OutboxMessage, outbox);
+      }
+
+      await queryRunner.commitTransaction();
+      this.logger.log(`Updated movie "${updated.title}" (ID: ${updated.id}) with ${outboxItems.length} media processing jobs`);
+
+      await this.cacheService.invalidateTags([`movie:${id}`]);
+      await this.cacheService.invalidatePatterns(['catalog:feed:*']);
+
+      return this.mapToResponse(updated);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   private mapToResponse(movie: Movie): any {

@@ -1,9 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
-import { Genre, Movie } from '@booking-ticket-system/Entities';
+import { DataSource, In, Repository } from 'typeorm';
+import { randomUUID } from 'crypto';
+import { Genre, Movie, OutboxMessage } from '@booking-ticket-system/Entities';
 import { CreateMovieDto } from '@booking-ticket-system/DTOs';
-import { slugify } from '@booking-ticket-system/Utils';
+import {
+  ImageProfileType,
+  OutboxStatus,
+  slugify,
+} from '@booking-ticket-system/Utils';
 import { CatalogCacheService } from '../../cache/catalog-cache.service';
 
 @Injectable()
@@ -15,6 +20,7 @@ export class CreateMovieProvider {
     private readonly movieRepository: Repository<Movie>,
     @InjectRepository(Genre)
     private readonly genreRepository: Repository<Genre>,
+    private readonly dataSource: DataSource,
     private readonly cacheService: CatalogCacheService,
   ) {}
 
@@ -36,49 +42,146 @@ export class CreateMovieProvider {
       });
     }
 
-    const durationMinutes = Number(dto.durationMinutes ?? (dto as any).duration_minutes);
+    const movieId = randomUUID();
+    const durationMinutes = Number(
+      dto.durationMinutes ?? (dto as any).duration_minutes,
+    );
     const releaseDate = dto.releaseDate ?? (dto as any).release_date;
     const ageRating = dto.ageRating ?? (dto as any).age_rating;
-    const countryOfOrigin = dto.countryOfOrigin ?? (dto as any).country_of_origin ?? null;
-    const originalLanguage = dto.originalLanguage ?? (dto as any).original_language ?? 'en';
-    const spokenLanguages = dto.spokenLanguages ?? (dto as any).spoken_languages ?? [];
+    const countryOfOrigin =
+      dto.countryOfOrigin ?? (dto as any).country_of_origin ?? null;
+    const originalLanguage =
+      dto.originalLanguage ?? (dto as any).original_language ?? 'en';
+    const spokenLanguages =
+      dto.spokenLanguages ?? (dto as any).spoken_languages ?? [];
     const subtitles = dto.subtitles ?? [];
-    const posterUrl = dto.posterUrl ?? (dto as any).poster_url ?? null;
-    const bannerUrl = dto.bannerUrl ?? (dto as any).banner_url ?? null;
     const trailerUrl = dto.trailerUrl ?? (dto as any).trailer_url ?? null;
-    const galleryUrls = dto.galleryUrls ?? (dto as any).gallery_urls ?? [];
     const directors = dto.directors ?? [];
     const cast = dto.cast ?? [];
 
-    const movie = this.movieRepository.create({
-      title: dto.title,
-      slug,
-      description: dto.description,
-      durationMinutes,
-      releaseDate,
-      ageRating,
-      status: dto.status,
-      countryOfOrigin,
-      originalLanguage,
-      spokenLanguages,
-      subtitles,
-      posterUrl,
-      bannerUrl,
-      trailerUrl,
-      galleryUrls,
-      directors,
-      cast,
-      genres,
-      ratingAverage: 0,
-      ratingCount: 0,
-    });
+    const rawPosterUrl =
+      dto.posterUrl ??
+      (dto as any).poster_url ??
+      (dto as any).thumbnailUrl ??
+      (dto as any).thumbnail_url ??
+      null;
+    const rawBannerUrl =
+      dto.bannerUrl ??
+      (dto as any).banner_url ??
+      (dto as any).coverUrl ??
+      (dto as any).cover_url ??
+      null;
+    const rawGalleryUrls: string[] =
+      dto.galleryUrls ?? (dto as any).gallery_urls ?? [];
 
-    const savedMovie = await this.movieRepository.save(movie);
-    this.logger.log(`Created movie "${savedMovie.title}" (ID: ${savedMovie.id})`);
+    const outboxItems: Array<{
+      bucket: string;
+      tempKey: string;
+      finalKey: string;
+      profileType: ImageProfileType;
+    }> = [];
 
-    await this.cacheService.invalidatePatterns(['catalog:feed:*']);
+    let resolvedPosterUrl = rawPosterUrl;
+    if (rawPosterUrl && rawPosterUrl.startsWith('temp/')) {
+      const finalKey = `movies/${movieId}/thumbnails/${randomUUID()}.webp`;
+      outboxItems.push({
+        bucket: 'catalog',
+        tempKey: rawPosterUrl,
+        finalKey,
+        profileType: ImageProfileType.MOVIE_THUMBNAIL,
+      });
+      resolvedPosterUrl = finalKey;
+    }
 
-    return this.mapToResponse(savedMovie);
+    // Resolve Banner / Cover
+    let resolvedBannerUrl = rawBannerUrl;
+    if (rawBannerUrl && rawBannerUrl.startsWith('temp/')) {
+      const finalKey = `movies/${movieId}/covers/${randomUUID()}.webp`;
+      outboxItems.push({
+        bucket: 'catalog',
+        tempKey: rawBannerUrl,
+        finalKey,
+        profileType: ImageProfileType.MOVIE_COVER,
+      });
+      resolvedBannerUrl = finalKey;
+    }
+
+    // Resolve Gallery
+    const resolvedGalleryUrls: string[] = [];
+    for (const item of rawGalleryUrls) {
+      if (item && item.startsWith('temp/')) {
+        const finalKey = `movies/${movieId}/gallery/${randomUUID()}.webp`;
+        outboxItems.push({
+          bucket: 'catalog',
+          tempKey: item,
+          finalKey,
+          profileType: ImageProfileType.MOVIE_GALLERY,
+        });
+        resolvedGalleryUrls.push(finalKey);
+      } else if (item) {
+        resolvedGalleryUrls.push(item);
+      }
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const movie = queryRunner.manager.create(Movie, {
+        id: movieId,
+        title: dto.title,
+        slug,
+        description: dto.description,
+        durationMinutes,
+        releaseDate,
+        ageRating,
+        status: dto.status,
+        countryOfOrigin,
+        originalLanguage,
+        spokenLanguages,
+        subtitles,
+        posterUrl: resolvedPosterUrl,
+        bannerUrl: resolvedBannerUrl,
+        trailerUrl,
+        galleryUrls: resolvedGalleryUrls,
+        directors,
+        cast,
+        genres,
+        ratingAverage: 0,
+        ratingCount: 0,
+      });
+
+      const savedMovie = await queryRunner.manager.save(Movie, movie);
+
+      for (const item of outboxItems) {
+        const outbox = queryRunner.manager.create(OutboxMessage, {
+          eventType: 'PROCESS_CATALOG_MEDIA',
+          payload: {
+            bucket: item.bucket,
+            tempKey: item.tempKey,
+            finalKey: item.finalKey,
+            profileType: item.profileType,
+          },
+          status: OutboxStatus.PENDING,
+        });
+        await queryRunner.manager.save(OutboxMessage, outbox);
+      }
+
+      await queryRunner.commitTransaction();
+      this.logger.log(
+        `Created movie "${savedMovie.title}" (ID: ${savedMovie.id}) with ${outboxItems.length} media processing jobs`,
+      );
+
+      await this.cacheService.invalidatePatterns(['catalog:feed:*']);
+
+      return this.mapToResponse(savedMovie);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   private mapToResponse(movie: Movie): any {

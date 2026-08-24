@@ -118,4 +118,59 @@ export class MediaService {
       finalKey,
     };
   }
+
+  async processCatalogMedia(data: any) {
+    const tempKey = data.tempKey || data.tempObjectKey;
+    const finalKey = data.finalKey;
+    const bucket = data.bucket || 'catalog';
+    const profileType = data.profileType || ImageProfileType.MOVIE_THUMBNAIL;
+
+    if (!tempKey || !finalKey) {
+      this.logger.warn(`Missing tempKey or finalKey for catalog media processing: ${JSON.stringify(data)}`);
+      return { skipped: true };
+    }
+
+    // Idempotency check: if finalKey already exists in the target bucket, skip processing
+    const alreadyExists = await this.minioService.objectExists(finalKey, bucket);
+    if (alreadyExists) {
+      this.logger.log(`Skipping reprocessing, ${bucket}/${finalKey} already exists`);
+      return { skipped: true, finalKey, bucket };
+    }
+
+    // Determine which bucket holds the temp key
+    let sourceBucket = bucket;
+    let tempExists = await this.minioService.objectExists(tempKey, bucket);
+    if (!tempExists) {
+      const defaultBucketExists = await this.minioService.objectExists(tempKey);
+      if (defaultBucketExists) {
+        sourceBucket = (this.minioService as any).bucketName || 'profile-photos';
+        tempExists = true;
+      }
+    }
+
+    if (!tempExists) {
+      this.logger.warn(
+        `Idempotency Guard: tempKey "${tempKey}" not found in bucket "${bucket}". Already processed or deleted.`,
+      );
+      return { skipped: true };
+    }
+
+    const rawBuffer = await this.minioService.getBuffer(tempKey, sourceBucket);
+
+    const { buffer } = await this.imageProcessor.processImageByProfile(
+      rawBuffer,
+      profileType,
+      data.crop,
+    );
+
+    await this.minioService.uploadBuffer(buffer, finalKey, 'image/webp', bucket);
+    this.logger.log(`Processed and uploaded catalog media to ${bucket}/${finalKey}`);
+
+    await this.minioService.deleteObject(tempKey, sourceBucket).catch(() => null);
+
+    return {
+      finalKey,
+      bucket,
+    };
+  }
 }

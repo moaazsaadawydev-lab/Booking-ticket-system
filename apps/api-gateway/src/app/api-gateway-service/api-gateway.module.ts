@@ -27,6 +27,7 @@ import {
   CatalogSeatsController,
   CatalogShowtimesController,
 } from './Controllers/Catalog';
+import { MediaController } from './Controllers/Media';
 import {
   AuthProvider,
   RegistrationProvider,
@@ -106,6 +107,7 @@ import {
     CatalogCinemasController,
     CatalogSeatsController,
     CatalogShowtimesController,
+    MediaController,
   ],
   providers: [
     JwtAuthGuard,

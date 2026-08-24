@@ -7,6 +7,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUrl,
   IsUUID,
   Max,
   MaxLength,
@@ -14,6 +15,7 @@ import {
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { MovieAgeRating, MovieStatus } from '@booking-ticket-system/Utils';
+import { IsUrlOrTempKey } from './validators/is-url-or-temp-key.decorator';
 
 export class CreateMovieDto {
   @IsString()
@@ -36,8 +38,7 @@ export class CreateMovieDto {
   durationMinutes!: number;
 
   @Transform(({ obj }) => obj.release_date ?? obj.releaseDate)
-  @IsString()
-  @IsNotEmpty()
+  @IsDateString()
   releaseDate!: string;
 
   @Transform(({ obj }) => obj.age_rating ?? obj.ageRating)
@@ -51,11 +52,13 @@ export class CreateMovieDto {
   @Transform(({ obj }) => obj.country_of_origin ?? obj.countryOfOrigin)
   @IsOptional()
   @IsString()
+  @MaxLength(2)
   countryOfOrigin?: string;
 
   @Transform(({ obj }) => obj.original_language ?? obj.originalLanguage)
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
+  @MaxLength(10)
   originalLanguage!: string;
 
   @Transform(({ obj }) => obj.spoken_languages ?? obj.spokenLanguages)
@@ -69,25 +72,25 @@ export class CreateMovieDto {
   @IsString({ each: true })
   subtitles?: string[];
 
-  @Transform(({ obj }) => obj.poster_url ?? obj.posterUrl)
+  @Transform(({ obj }) => obj.poster_url ?? obj.posterUrl ?? obj.thumbnail_url ?? obj.thumbnailUrl)
   @IsOptional()
-  @IsString()
+  @IsUrlOrTempKey()
   posterUrl?: string;
 
-  @Transform(({ obj }) => obj.banner_url ?? obj.bannerUrl)
+  @Transform(({ obj }) => obj.banner_url ?? obj.bannerUrl ?? obj.cover_url ?? obj.coverUrl)
   @IsOptional()
-  @IsString()
+  @IsUrlOrTempKey()
   bannerUrl?: string;
 
   @Transform(({ obj }) => obj.trailer_url ?? obj.trailerUrl)
   @IsOptional()
-  @IsString()
+  @IsUrl({}, { message: 'trailerUrl must be a valid URL' })
   trailerUrl?: string;
 
   @Transform(({ obj }) => obj.gallery_urls ?? obj.galleryUrls)
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
+  @IsUrlOrTempKey({ each: true })
   galleryUrls?: string[];
 
   @IsArray()
@@ -128,7 +131,7 @@ export class UpdateMovieDto {
 
   @Transform(({ obj }) => obj.release_date ?? obj.releaseDate)
   @IsOptional()
-  @IsString()
+  @IsDateString()
   releaseDate?: string;
 
   @Transform(({ obj }) => obj.age_rating ?? obj.ageRating)
@@ -143,11 +146,13 @@ export class UpdateMovieDto {
   @Transform(({ obj }) => obj.country_of_origin ?? obj.countryOfOrigin)
   @IsOptional()
   @IsString()
+  @MaxLength(2)
   countryOfOrigin?: string;
 
   @Transform(({ obj }) => obj.original_language ?? obj.originalLanguage)
   @IsOptional()
   @IsString()
+  @MaxLength(10)
   originalLanguage?: string;
 
   @Transform(({ obj }) => obj.spoken_languages ?? obj.spokenLanguages)
@@ -161,25 +166,25 @@ export class UpdateMovieDto {
   @IsString({ each: true })
   subtitles?: string[];
 
-  @Transform(({ obj }) => obj.poster_url ?? obj.posterUrl)
+  @Transform(({ obj }) => obj.poster_url ?? obj.posterUrl ?? obj.thumbnail_url ?? obj.thumbnailUrl)
   @IsOptional()
-  @IsString()
+  @IsUrlOrTempKey()
   posterUrl?: string;
 
-  @Transform(({ obj }) => obj.banner_url ?? obj.bannerUrl)
+  @Transform(({ obj }) => obj.banner_url ?? obj.bannerUrl ?? obj.cover_url ?? obj.coverUrl)
   @IsOptional()
-  @IsString()
+  @IsUrlOrTempKey()
   bannerUrl?: string;
 
   @Transform(({ obj }) => obj.trailer_url ?? obj.trailerUrl)
   @IsOptional()
-  @IsString()
+  @IsUrl({}, { message: 'trailerUrl must be a valid URL' })
   trailerUrl?: string;
 
   @Transform(({ obj }) => obj.gallery_urls ?? obj.galleryUrls)
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
+  @IsUrlOrTempKey({ each: true })
   galleryUrls?: string[];
 
   @IsOptional()

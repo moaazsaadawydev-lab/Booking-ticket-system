@@ -19,4 +19,5 @@ export * from './lib/catalog/movie.dto';
 export * from './lib/catalog/cinema.dto';
 export * from './lib/catalog/seat.dto';
 export * from './lib/catalog/showtime.dto';
+export * from './lib/catalog/validators/is-url-or-temp-key.decorator';
 

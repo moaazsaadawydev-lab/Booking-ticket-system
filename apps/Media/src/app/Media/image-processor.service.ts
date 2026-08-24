@@ -13,12 +13,19 @@ import { ImageProfileType } from '@booking-ticket-system/Utils';
 export class ImageProcessorService {
   async processImageByProfile(
     fileBuffer: Buffer,
-    profileType: ImageProfileType,
+    profileType: ImageProfileType | string,
     crop?: CropOptions,
   ): Promise<ProcessedImageResult> {
     try {
+      const normalizedType =
+        typeof profileType === 'string'
+          ? (profileType.toUpperCase() as ImageProfileType)
+          : profileType;
+
       const profile =
-        IMAGE_PROFILES[profileType] || IMAGE_PROFILES[ImageProfileType.AVATAR];
+        IMAGE_PROFILES[normalizedType] ||
+        IMAGE_PROFILES[profileType as ImageProfileType] ||
+        IMAGE_PROFILES[ImageProfileType.AVATAR];
 
       let pipeline = sharp(fileBuffer);
       const metadata = await pipeline.metadata();
@@ -63,17 +70,18 @@ export class ImageProcessorService {
           width: profile.width,
           height: profile.height,
           fit: profile.fit,
-          position: 'top',
           withoutEnlargement: true,
         });
       }
 
-      if (profileType === ImageProfileType.AVATAR) {
+      if (normalizedType === ImageProfileType.AVATAR) {
+        const circleWidth = targetWidth || 300;
+        const circleHeight = targetHeight || 300;
         const circleShape = Buffer.from(
-          `<svg width="${targetWidth}" height="${targetHeight}">
-            <circle cx="${targetWidth / 2}" cy="${
-            targetHeight / 2
-          }" r="${targetWidth / 2}" fill="#fff"/>
+          `<svg width="${circleWidth}" height="${circleHeight}">
+            <circle cx="${circleWidth / 2}" cy="${
+            circleHeight / 2
+          }" r="${circleWidth / 2}" fill="#fff"/>
           </svg>`,
         );
 
@@ -84,6 +92,7 @@ export class ImageProcessorService {
           },
         ]);
       }
+
       const processedBuffer = await pipeline
         .webp({ quality: profile.quality })
         .toBuffer();
@@ -92,10 +101,10 @@ export class ImageProcessorService {
         buffer: processedBuffer,
         config: profile,
       };
-    } catch (error) {
+    } catch (error: any) {
       throw new RpcException({
         code: status.INVALID_ARGUMENT,
-        message: 'Failed to process image. Invalid image file.',
+        message: `Failed to process image: ${error.message || 'Invalid image file.'}`,
       });
     }
   }

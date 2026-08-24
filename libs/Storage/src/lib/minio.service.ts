@@ -26,12 +26,23 @@ export class MinioService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    const exists = await this.client
-      .bucketExists(this.bucketName)
-      .catch(() => false);
-    if (!exists) {
-      await this.client.makeBucket(this.bucketName);
-      this.logger.log(`Bucket "${this.bucketName}" created`);
+    const bucketsToInit = [this.bucketName, 'catalog', 'profile-photos'];
+    for (const bucket of Array.from(new Set(bucketsToInit))) {
+      await this.ensureBucketExists(bucket);
+    }
+  }
+
+  async ensureBucketExists(bucketName: string): Promise<void> {
+    try {
+      const exists = await this.client
+        .bucketExists(bucketName)
+        .catch(() => false);
+      if (!exists) {
+        await this.client.makeBucket(bucketName);
+        this.logger.log(`Bucket "${bucketName}" created`);
+      }
+    } catch (err: any) {
+      this.logger.warn(`Could not verify/create bucket "${bucketName}": ${err.message}`);
     }
   }
 
@@ -39,9 +50,12 @@ export class MinioService implements OnModuleInit {
     buffer: Buffer,
     objectKey: string,
     contentType = 'application/octet-stream',
+    bucketName?: string,
   ): Promise<string> {
+    const targetBucket = bucketName || this.bucketName;
+    await this.ensureBucketExists(targetBucket);
     await this.client.putObject(
-      this.bucketName,
+      targetBucket,
       objectKey,
       buffer,
       buffer.length,
@@ -49,12 +63,13 @@ export class MinioService implements OnModuleInit {
         'Content-Type': contentType,
       },
     );
-    this.logger.log(`Object "${objectKey}" uploaded`);
+    this.logger.log(`Object "${objectKey}" uploaded to bucket "${targetBucket}"`);
     return objectKey;
   }
 
-  async getBuffer(objectKey: string): Promise<Buffer> {
-    const stream = await this.client.getObject(this.bucketName, objectKey);
+  async getBuffer(objectKey: string, bucketName?: string): Promise<Buffer> {
+    const targetBucket = bucketName || this.bucketName;
+    const stream = await this.client.getObject(targetBucket, objectKey);
     const chunks: Buffer[] = [];
     for await (const chunk of stream) {
       chunks.push(chunk);
@@ -65,24 +80,29 @@ export class MinioService implements OnModuleInit {
   async getPresignedUrl(
     objectKey: string,
     expirySeconds = 3600,
+    bucketName?: string,
   ): Promise<string> {
+    const targetBucket = bucketName || this.bucketName;
     return this.client.presignedGetObject(
-      this.bucketName,
+      targetBucket,
       objectKey,
       expirySeconds,
     );
   }
 
-  async deleteObject(objectKey: string): Promise<void> {
-    await this.client.removeObject(this.bucketName, objectKey);
+  async deleteObject(objectKey: string, bucketName?: string): Promise<void> {
+    const targetBucket = bucketName || this.bucketName;
+    await this.client.removeObject(targetBucket, objectKey);
   }
 
-  async objectExists(objectKey: string): Promise<boolean> {
+  async objectExists(objectKey: string, bucketName?: string): Promise<boolean> {
+    const targetBucket = bucketName || this.bucketName;
     try {
-      await this.client.statObject(this.bucketName, objectKey);
+      await this.client.statObject(targetBucket, objectKey);
       return true;
     } catch {
       return false;
     }
   }
 }
+

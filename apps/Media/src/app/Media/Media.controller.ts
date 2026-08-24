@@ -55,4 +55,25 @@ export class MediaController {
       channel.nack(originalMsg, false, true);
     }
   }
+
+  @EventPattern('PROCESS_CATALOG_MEDIA')
+  async handleProcessCatalogMedia(
+    @Payload() data: any,
+    @Ctx() context: RmqContext,
+  ) {
+    const channel = context.getChannelRef();
+    const originalMsg = context.getMessage();
+
+    try {
+      await this.MediaService.processCatalogMedia(data);
+      channel.ack(originalMsg);
+    } catch (error: any) {
+      this.logger.error(
+        `Error processing PROCESS_CATALOG_MEDIA: ${error.message}`,
+        error.stack,
+      );
+      const isRedelivered = originalMsg.fields.redelivered;
+      channel.nack(originalMsg, false, !isRedelivered);
+    }
+  }
 }

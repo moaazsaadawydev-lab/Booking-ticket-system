@@ -48,6 +48,7 @@ async function bootstrap() {
   });
 
   await app.startAllMicroservices();
+  await app.init();
   logger.log(`🚀 Catalog Microservice is listening on gRPC [${grpcUrl}]`);
   logger.log(`🐇 Catalog Microservice is connected to RabbitMQ [${mqUrl}] queue: catalog_events_queue`);
 }

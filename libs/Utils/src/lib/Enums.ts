@@ -60,9 +60,12 @@ export enum Country {
 }
 
 export enum ImageProfileType {
-  AVATAR = 'avatar',
-  MOVIE_THUMBNAIL = 'movie_thumbnail',
-  MOVIE_COVER = 'movie_cover',
+  AVATAR = 'AVATAR',
+  MOVIE_THUMBNAIL = 'MOVIE_THUMBNAIL',
+  MOVIE_COVER = 'MOVIE_COVER',
+  MOVIE_GALLERY = 'MOVIE_GALLERY',
+  CINEMA_THUMBNAIL = 'CINEMA_THUMBNAIL',
+  CINEMA_GALLERY = 'CINEMA_GALLERY',
 }
 
 export enum OutboxStatus {

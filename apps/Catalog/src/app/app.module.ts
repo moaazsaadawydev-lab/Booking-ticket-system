@@ -20,10 +20,14 @@ import { CinemasModule } from './cinemas/cinemas.module';
 import { SeatsModule } from './seats/seats.module';
 import { ShowtimesModule } from './showtimes/showtimes.module';
 import { CatalogCacheModule } from './cache/catalog-cache.module';
+import { OutboxModule } from './outbox/outbox.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     CatalogCacheModule,
+    OutboxModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: `libs/env/.env.${process.env['NODE_ENV'] || 'development'}`,

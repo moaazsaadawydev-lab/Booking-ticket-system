@@ -1,5 +1,5 @@
 import { ImageProfileConfig } from '@booking-ticket-system/Interfaces';
-import { ImageProfileType } from '@booking-ticket-system/Utils';
+import { ImageProfileType } from './Enums';
 
 export const IMAGE_PROFILES: Record<ImageProfileType, ImageProfileConfig> = {
   [ImageProfileType.AVATAR]: {

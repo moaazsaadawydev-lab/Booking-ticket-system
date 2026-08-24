@@ -70,6 +70,7 @@ export class GetShowtimeProvider {
             original_language: movie.originalLanguage,
             poster_url: movie.posterUrl,
             banner_url: movie.bannerUrl,
+            trailer_url: movie.trailerUrl || null,
             rating_average: Number(movie.ratingAverage) || 0,
             rating_count: movie.ratingCount || 0,
             genres: (movie.genres || []).map((g) => ({

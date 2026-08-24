@@ -12,6 +12,7 @@ import {
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { ExperienceType } from '@booking-ticket-system/Utils';
+import { IsUrlOrTempKey } from './validators/is-url-or-temp-key.decorator';
 
 export class CreateCinemaDto {
   @IsString()
@@ -56,13 +57,13 @@ export class CreateCinemaDto {
 
   @Transform(({ obj }) => obj.thumbnail_url ?? obj.thumbnailUrl)
   @IsOptional()
-  @IsString()
+  @IsUrlOrTempKey()
   thumbnailUrl?: string;
 
   @Transform(({ obj }) => obj.gallery_urls ?? obj.galleryUrls)
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
+  @IsUrlOrTempKey({ each: true })
   galleryUrls?: string[];
 
   @Transform(({ obj }) => obj.is_active ?? obj.isActive)
@@ -120,13 +121,13 @@ export class UpdateCinemaDto {
 
   @Transform(({ obj }) => obj.thumbnail_url ?? obj.thumbnailUrl)
   @IsOptional()
-  @IsString()
+  @IsUrlOrTempKey()
   thumbnailUrl?: string;
 
   @Transform(({ obj }) => obj.gallery_urls ?? obj.galleryUrls)
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
+  @IsUrlOrTempKey({ each: true })
   galleryUrls?: string[];
 
   @Transform(({ obj }) => obj.is_active ?? obj.isActive)
