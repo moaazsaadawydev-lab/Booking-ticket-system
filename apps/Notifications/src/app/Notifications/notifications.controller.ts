@@ -4,13 +4,16 @@ import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
 import { NotificationDto } from '@booking-ticket-system/DTOs';
 import { NotificationType } from '@booking-ticket-system/Utils';
 import { BookingOutboxEvent } from '@booking-ticket-system/Constants';
-
+import { QrCodeService } from '../qr/qr-code.service';
 
 @Controller()
 export class NotificationController {
   private readonly logger = new Logger(NotificationController.name);
 
-  constructor(private readonly NotificationsService: NotificationService) {}
+  constructor(
+    private readonly NotificationsService: NotificationService,
+    private readonly qrCodeService: QrCodeService,
+  ) {}
 
   @EventPattern('user_created')
   async handleUserCreated(
@@ -693,6 +696,14 @@ export class NotificationController {
       totalAmount: number;
       paymentId: string;
       confirmedAt: string;
+      tickets?: Array<{
+        id: string;
+        seatId: string;
+        seatIdentifier?: string;
+        ticketNumber: string;
+        qrCodeToken: string;
+        status?: string;
+      }>;
       eventId?: string;
       sourceEventId?: string;
     },
@@ -706,10 +717,36 @@ export class NotificationController {
       `[NotificationsService] 🎟️ Received booking.confirmed for booking ${data.bookingReference} (Payment: ${data.paymentId})`,
     );
 
+    // Generate in-memory QR Code PNG buffers for each ticket
+    const tickets = data.tickets || [];
+    const generatedQrBuffers: { ticketId: string; ticketNumber: string; qrLength: number }[] = [];
+    for (const ticket of tickets) {
+      if (ticket.qrCodeToken) {
+        try {
+          const qrBuffer = await this.qrCodeService.generateQrBuffer(ticket.qrCodeToken);
+          generatedQrBuffers.push({
+            ticketId: ticket.id,
+            ticketNumber: ticket.ticketNumber,
+            qrLength: qrBuffer.length,
+          });
+        } catch (qrErr: any) {
+          this.logger.warn(
+            `Failed to generate in-memory QR for ticket ${ticket.ticketNumber}: ${qrErr.message}`,
+          );
+        }
+      }
+    }
+
+    if (generatedQrBuffers.length > 0) {
+      this.logger.log(
+        `[NotificationsService] ⚡ Generated ${generatedQrBuffers.length} in-memory QR code buffers for tickets of booking ${data.bookingReference}`,
+      );
+    }
+
     const notificationDto: NotificationDto = {
       UserId: data.userId,
       title: 'Booking Confirmed!',
-      body: `Your booking ${data.bookingReference} has been confirmed. Total Paid: ${data.totalAmount} EGP. Your tickets have been issued.`,
+      body: `Your booking ${data.bookingReference} has been confirmed. Total Paid: ${data.totalAmount} EGP. ${tickets.length} tickets have been issued with QR codes.`,
       type: NotificationType.ALERT_MESSAGE,
     };
 

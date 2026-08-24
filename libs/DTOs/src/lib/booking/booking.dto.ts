@@ -31,9 +31,9 @@ export class HoldSeatsDto {
 
 export class ConfirmBookingDto {
   @Transform(({ obj }) => obj.booking_id ?? obj.bookingId)
+  @IsOptional()
   @IsUUID('4')
-  @IsNotEmpty()
-  bookingId!: string;
+  bookingId?: string;
 
   @Transform(({ obj }) => obj.payment_id ?? obj.paymentId)
   @IsUUID('4')

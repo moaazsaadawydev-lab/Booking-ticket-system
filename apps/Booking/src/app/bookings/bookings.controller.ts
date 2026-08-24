@@ -66,4 +66,13 @@ export class BookingsController {
 
     return await this.getBookingProvider.getUserBookings(userId, page, limit);
   }
+
+  @GrpcMethod('BookingService', 'GetTicketById')
+  async getTicketById(data: { ticket_id?: string; ticketId?: string; user_id?: string; userId?: string; is_admin?: boolean; isAdmin?: boolean }) {
+    const ticketId = data.ticketId || data.ticket_id || '';
+    const userId = data.userId || data.user_id || '';
+    const isAdmin = Boolean(data.isAdmin ?? data.is_admin);
+
+    return await this.getBookingProvider.getTicketById(ticketId, userId, isAdmin);
+  }
 }

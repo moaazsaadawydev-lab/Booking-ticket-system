@@ -28,7 +28,7 @@ import {
   CatalogShowtimesController,
 } from './Controllers/Catalog';
 import { MediaController } from './Controllers/Media';
-import { BookingsController } from './Controllers/Booking';
+import { BookingsController, TicketsController } from './Controllers/Booking';
 import {
   AuthProvider,
   RegistrationProvider,
@@ -37,6 +37,7 @@ import {
   CatalogProvider,
   BookingProvider,
 } from './providers';
+import { QrCodeService } from '@booking-ticket-system/Common';
 
 @Module({
   imports: [
@@ -131,6 +132,7 @@ import {
     CatalogSeatsController,
     CatalogShowtimesController,
     BookingsController,
+    TicketsController,
     MediaController,
   ],
   providers: [
@@ -145,6 +147,7 @@ import {
     GoogleStrategy,
     CatalogProvider,
     BookingProvider,
+    QrCodeService,
   ],
 })
 export class ApiGatewayModule {}

@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
-import { Booking } from '@booking-ticket-system/Entities';
+import { Booking, Ticket } from '@booking-ticket-system/Entities';
 import { mapToBookingResponse } from '../utils/booking-mapper';
 
 @Injectable()
@@ -11,6 +11,8 @@ export class GetBookingProvider {
   constructor(
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(Ticket)
+    private readonly ticketRepository: Repository<Ticket>,
   ) {}
 
   async getById(
@@ -83,4 +85,58 @@ export class GetBookingProvider {
       limit: safeLimit,
     };
   }
+
+  async getTicketById(
+    ticketId: string,
+    userId?: string,
+    isAdmin = false,
+  ): Promise<{ ticket: any; booking: any }> {
+    if (!ticketId) {
+      throw new RpcException({
+        code: status.INVALID_ARGUMENT,
+        message: 'ticketId is required',
+      });
+    }
+
+    const ticket = await this.ticketRepository.findOne({
+      where: { id: ticketId },
+      relations: {
+        booking: {
+          seats: true,
+          tickets: true,
+        },
+      },
+    });
+
+    if (!ticket) {
+      throw new RpcException({
+        code: status.NOT_FOUND,
+        message: `Ticket with ID "${ticketId}" was not found`,
+      });
+    }
+
+    if (userId && !isAdmin && ticket.booking?.userId !== userId) {
+      throw new RpcException({
+        code: status.PERMISSION_DENIED,
+        message: 'You do not have permission to view this ticket',
+      });
+    }
+
+    return {
+      ticket: {
+        id: ticket.id,
+        seat_id: ticket.seatId,
+        seatId: ticket.seatId,
+        ticket_number: ticket.ticketNumber,
+        ticketNumber: ticket.ticketNumber,
+        qr_code_token: ticket.qrCodeToken,
+        qrCodeToken: ticket.qrCodeToken,
+        status: ticket.status,
+        used_at: ticket.usedAt?.toISOString() || null,
+        usedAt: ticket.usedAt?.toISOString() || null,
+      },
+      booking: mapToBookingResponse(ticket.booking),
+    };
+  }
 }
+

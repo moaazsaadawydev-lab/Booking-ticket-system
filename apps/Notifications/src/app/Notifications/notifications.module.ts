@@ -7,10 +7,13 @@ import { NotificationController } from './notifications.controller';
 import { NotificationService } from './notifications.service';
 import { NotificationEmailPublisherService } from './notification-email-publisher.service';
 
+import { QrModule } from '../qr/qr.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([NotificationsEntity]),
     ScheduleModule.forRoot(),
+    QrModule,
   ],
   controllers: [NotificationController],
   providers: [

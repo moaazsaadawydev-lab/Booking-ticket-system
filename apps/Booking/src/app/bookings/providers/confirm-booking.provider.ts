@@ -95,6 +95,7 @@ export class ConfirmBookingProvider {
         updatedBooking.tickets = await manager.save(Ticket, ticketsToCreate);
 
         // Save transactional Outbox event
+        const seatMap = new Map((booking.seats || []).map((s) => [s.seatId, s.seatIdentifier]));
         const outboxEntity = manager.create(BookingOutbox, {
           eventType: BookingOutboxEvent.BOOKING_CONFIRMED,
           payload: {
@@ -105,6 +106,14 @@ export class ConfirmBookingProvider {
             totalAmount: updatedBooking.totalAmount,
             paymentId: updatedBooking.paymentId,
             confirmedAt: updatedBooking.confirmedAt?.toISOString(),
+            tickets: (updatedBooking.tickets || []).map((t) => ({
+              id: t.id,
+              seatId: t.seatId,
+              seatIdentifier: seatMap.get(t.seatId) || '',
+              ticketNumber: t.ticketNumber,
+              qrCodeToken: t.qrCodeToken,
+              status: t.status,
+            })),
           },
           status: OutboxStatus.PENDING,
         });

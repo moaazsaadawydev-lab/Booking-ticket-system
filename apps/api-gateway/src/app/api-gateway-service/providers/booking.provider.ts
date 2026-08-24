@@ -90,4 +90,18 @@ export class BookingProvider implements OnModuleInit {
       limit: Number(res?.limit) || 10,
     };
   }
+
+  async getTicketById(ticketId: string, userId: string, isAdmin = false) {
+    const res: any = await lastValueFrom(
+      this.bookingService.GetTicketById({
+        ticket_id: ticketId,
+        ticketId,
+        user_id: userId,
+        userId,
+        is_admin: isAdmin,
+        isAdmin,
+      }),
+    );
+    return res;
+  }
 }

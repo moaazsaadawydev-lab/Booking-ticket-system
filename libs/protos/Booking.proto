@@ -8,6 +8,7 @@ service BookingService {
   rpc CancelBooking (CancelBookingRequest) returns (CancelBookingResponse);
   rpc GetBookingById (GetBookingByIdRequest) returns (BookingResponse);
   rpc GetUserBookings (GetUserBookingsRequest) returns (GetUserBookingsResponse);
+  rpc GetTicketById (GetTicketByIdRequest) returns (GetTicketByIdResponse);
 }
 
 // --- Request / Response Messages ---
@@ -94,4 +95,15 @@ message GetUserBookingsResponse {
   int32 total = 2;
   int32 page = 3;
   int32 limit = 4;
+}
+
+message GetTicketByIdRequest {
+  string ticket_id = 1;
+  string user_id = 2;
+  bool is_admin = 3;
+}
+
+message GetTicketByIdResponse {
+  TicketItem ticket = 1;
+  BookingResponse booking = 2;
 }
