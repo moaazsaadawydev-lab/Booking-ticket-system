@@ -10,12 +10,15 @@ import {
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
+import { ScheduleModule } from '@nestjs/schedule';
 import { RedisModule } from '@booking-ticket-system/Redis';
 import { BookingsModule } from './bookings/bookings.module';
+import { OutboxModule } from './outbox/outbox.module';
 
 @Module({
   imports: [
     RedisModule,
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: `libs/env/.env.${process.env['NODE_ENV'] || 'development'}`,
@@ -48,6 +51,7 @@ import { BookingsModule } from './bookings/bookings.module';
       BookingOutbox,
     ]),
     BookingsModule,
+    OutboxModule,
   ],
   controllers: [AppController],
   providers: [AppService],

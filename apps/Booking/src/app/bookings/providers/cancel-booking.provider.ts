@@ -2,8 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
-import { Booking, Ticket } from '@booking-ticket-system/Entities';
-import { BookingStatus, TicketStatus } from '@booking-ticket-system/Utils';
+import { Booking, Ticket, BookingOutbox } from '@booking-ticket-system/Entities';
+import { BookingStatus, TicketStatus, OutboxStatus } from '@booking-ticket-system/Utils';
+import { BookingOutboxEvent } from '@booking-ticket-system/Constants';
 import { SeatLockProvider } from './seat-lock.provider';
 
 @Injectable()
@@ -70,6 +71,21 @@ export class CancelBookingProvider {
         }
         await manager.save(Ticket, booking.tickets);
       }
+
+      // Save transactional Outbox event
+      const outboxEntity = manager.create(BookingOutbox, {
+        eventType: BookingOutboxEvent.BOOKING_CANCELLED,
+        payload: {
+          bookingId: booking.id,
+          bookingReference: booking.bookingReference,
+          userId: booking.userId,
+          showtimeId: booking.showtimeId,
+          reason: reason || null,
+          cancelledAt: new Date().toISOString(),
+        },
+        status: OutboxStatus.PENDING,
+      });
+      await manager.save(BookingOutbox, outboxEntity);
     });
 
     // Release Redis distributed locks for freed seats

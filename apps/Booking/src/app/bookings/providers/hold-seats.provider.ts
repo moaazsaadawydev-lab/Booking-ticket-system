@@ -4,9 +4,9 @@ import { ClientGrpc, RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import { lastValueFrom } from 'rxjs';
 import * as crypto from 'crypto';
-import { CATALOG_SERVICE } from '@booking-ticket-system/Constants';
-import { Booking, BookingSeat } from '@booking-ticket-system/Entities';
-import { BookingStatus, SeatType } from '@booking-ticket-system/Utils';
+import { CATALOG_SERVICE, BookingOutboxEvent } from '@booking-ticket-system/Constants';
+import { Booking, BookingSeat, BookingOutbox } from '@booking-ticket-system/Entities';
+import { BookingStatus, OutboxStatus, SeatType } from '@booking-ticket-system/Utils';
 import { SeatLockProvider } from './seat-lock.provider';
 import { mapToBookingResponse } from '../utils/booking-mapper';
 
@@ -208,6 +208,21 @@ export class HoldSeatsProvider implements OnModuleInit {
           bookingSeatsEntities,
         );
         persistedBooking.tickets = [];
+
+        // Save transactional Outbox event
+        const outboxEntity = manager.create(BookingOutbox, {
+          eventType: BookingOutboxEvent.BOOKING_HOLD_CREATED,
+          payload: {
+            bookingId: persistedBooking.id,
+            bookingReference: persistedBooking.bookingReference,
+            userId: persistedBooking.userId,
+            showtimeId: persistedBooking.showtimeId,
+            totalAmount: persistedBooking.totalAmount,
+            holdExpiresAt: persistedBooking.holdExpiresAt?.toISOString(),
+          },
+          status: OutboxStatus.PENDING,
+        });
+        await manager.save(BookingOutbox, outboxEntity);
 
         return persistedBooking;
       });

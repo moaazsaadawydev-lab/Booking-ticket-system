@@ -37,3 +37,13 @@ export const CATALOG_EVENTS_QUEUE = 'catalog_events_queue';
 export const BOOKING_SERVICE = 'BOOKING_SERVICE';
 export const BOOKING_PACKAGE_NAME = 'booking';
 export const BOOKING_QUEUE = 'booking_queue';
+
+export enum BookingOutboxEvent {
+  BOOKING_HOLD_CREATED = 'booking.hold.created',
+  BOOKING_CONFIRMED = 'booking.confirmed',
+  BOOKING_CANCELLED = 'booking.cancelled',
+  BOOKING_EXPIRED = 'booking.expired',
+}
+
+export const NOTIFICATION_SERVICE = 'NOTIFICATION_SERVICE';
+export const NOTIFICATION_QUEUE = 'notification_queue';

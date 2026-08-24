@@ -3,8 +3,9 @@ import { DataSource } from 'typeorm';
 import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import * as crypto from 'crypto';
-import { Booking, Ticket } from '@booking-ticket-system/Entities';
-import { BookingStatus, TicketStatus } from '@booking-ticket-system/Utils';
+import { Booking, Ticket, BookingOutbox } from '@booking-ticket-system/Entities';
+import { BookingStatus, TicketStatus, OutboxStatus } from '@booking-ticket-system/Utils';
+import { BookingOutboxEvent } from '@booking-ticket-system/Constants';
 import { mapToBookingResponse } from '../utils/booking-mapper';
 
 @Injectable()
@@ -92,6 +93,23 @@ export class ConfirmBookingProvider {
         });
 
         updatedBooking.tickets = await manager.save(Ticket, ticketsToCreate);
+
+        // Save transactional Outbox event
+        const outboxEntity = manager.create(BookingOutbox, {
+          eventType: BookingOutboxEvent.BOOKING_CONFIRMED,
+          payload: {
+            bookingId: updatedBooking.id,
+            bookingReference: updatedBooking.bookingReference,
+            userId: updatedBooking.userId,
+            showtimeId: updatedBooking.showtimeId,
+            totalAmount: updatedBooking.totalAmount,
+            paymentId: updatedBooking.paymentId,
+            confirmedAt: updatedBooking.confirmedAt?.toISOString(),
+          },
+          status: OutboxStatus.PENDING,
+        });
+        await manager.save(BookingOutbox, outboxEntity);
+
         return updatedBooking;
       },
     );

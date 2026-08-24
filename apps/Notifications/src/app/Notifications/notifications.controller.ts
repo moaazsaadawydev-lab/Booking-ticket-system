@@ -3,6 +3,7 @@ import { NotificationService } from './notifications.service';
 import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
 import { NotificationDto } from '@booking-ticket-system/DTOs';
 import { NotificationType } from '@booking-ticket-system/Utils';
+import { BookingOutboxEvent } from '@booking-ticket-system/Constants';
 
 
 @Controller()
@@ -630,5 +631,206 @@ export class NotificationController {
       channel.nack(originalMsg, false, !isRedelivered);
     }
   }
+
+  @EventPattern(BookingOutboxEvent.BOOKING_HOLD_CREATED)
+  async handleBookingHoldCreated(
+    @Payload()
+    data: {
+      bookingId: string;
+      bookingReference: string;
+      userId: string;
+      showtimeId: string;
+      totalAmount: number;
+      holdExpiresAt: string;
+      eventId?: string;
+      sourceEventId?: string;
+    },
+    @Ctx() context: RmqContext,
+  ) {
+    const channel = context.getChannelRef();
+    const originalMsg = context.getMessage();
+    const sourceEventId = data.sourceEventId || data.eventId;
+
+    this.logger.log(
+      `[NotificationsService] 🎟️ Received booking.hold.created for booking ${data.bookingReference} (User: ${data.userId})`,
+    );
+
+    const notificationDto: NotificationDto = {
+      UserId: data.userId,
+      title: 'Seats Held Successfully',
+      body: `Your seats for booking ${data.bookingReference} are held for 10 minutes. Total: ${data.totalAmount} EGP. Please proceed with payment before hold expires.`,
+      type: NotificationType.NORMAL_MESSAGE,
+    };
+
+    try {
+      await this.NotificationsService.createNotification(
+        notificationDto,
+        undefined,
+        sourceEventId,
+      );
+      channel.ack(originalMsg);
+    } catch (error: any) {
+      if (error?.code === '23505') {
+        channel.ack(originalMsg);
+        return;
+      }
+      this.logger.error(
+        `Failed to process booking.hold.created event for booking ${data.bookingId}: ${error.message}`,
+      );
+      const isRedelivered = originalMsg.fields.redelivered;
+      channel.nack(originalMsg, false, !isRedelivered);
+    }
+  }
+
+  @EventPattern(BookingOutboxEvent.BOOKING_CONFIRMED)
+  async handleBookingConfirmed(
+    @Payload()
+    data: {
+      bookingId: string;
+      bookingReference: string;
+      userId: string;
+      showtimeId: string;
+      totalAmount: number;
+      paymentId: string;
+      confirmedAt: string;
+      eventId?: string;
+      sourceEventId?: string;
+    },
+    @Ctx() context: RmqContext,
+  ) {
+    const channel = context.getChannelRef();
+    const originalMsg = context.getMessage();
+    const sourceEventId = data.sourceEventId || data.eventId;
+
+    this.logger.log(
+      `[NotificationsService] 🎟️ Received booking.confirmed for booking ${data.bookingReference} (Payment: ${data.paymentId})`,
+    );
+
+    const notificationDto: NotificationDto = {
+      UserId: data.userId,
+      title: 'Booking Confirmed!',
+      body: `Your booking ${data.bookingReference} has been confirmed. Total Paid: ${data.totalAmount} EGP. Your tickets have been issued.`,
+      type: NotificationType.ALERT_MESSAGE,
+    };
+
+    try {
+      await this.NotificationsService.createNotification(
+        notificationDto,
+        undefined,
+        sourceEventId,
+      );
+      channel.ack(originalMsg);
+    } catch (error: any) {
+      if (error?.code === '23505') {
+        channel.ack(originalMsg);
+        return;
+      }
+      this.logger.error(
+        `Failed to process booking.confirmed event for booking ${data.bookingId}: ${error.message}`,
+      );
+      const isRedelivered = originalMsg.fields.redelivered;
+      channel.nack(originalMsg, false, !isRedelivered);
+    }
+  }
+
+  @EventPattern(BookingOutboxEvent.BOOKING_CANCELLED)
+  async handleBookingCancelled(
+    @Payload()
+    data: {
+      bookingId: string;
+      bookingReference: string;
+      userId: string;
+      showtimeId: string;
+      reason?: string;
+      cancelledAt: string;
+      eventId?: string;
+      sourceEventId?: string;
+    },
+    @Ctx() context: RmqContext,
+  ) {
+    const channel = context.getChannelRef();
+    const originalMsg = context.getMessage();
+    const sourceEventId = data.sourceEventId || data.eventId;
+
+    this.logger.log(
+      `[NotificationsService] 🎟️ Received booking.cancelled for booking ${data.bookingReference}`,
+    );
+
+    const notificationDto: NotificationDto = {
+      UserId: data.userId,
+      title: 'Booking Cancelled',
+      body: `Your booking ${data.bookingReference} has been cancelled.${data.reason ? ` Reason: ${data.reason}` : ''} Your seats have been released.`,
+      type: NotificationType.WARNING_MESSAGE,
+    };
+
+    try {
+      await this.NotificationsService.createNotification(
+        notificationDto,
+        undefined,
+        sourceEventId,
+      );
+      channel.ack(originalMsg);
+    } catch (error: any) {
+      if (error?.code === '23505') {
+        channel.ack(originalMsg);
+        return;
+      }
+      this.logger.error(
+        `Failed to process booking.cancelled event for booking ${data.bookingId}: ${error.message}`,
+      );
+      const isRedelivered = originalMsg.fields.redelivered;
+      channel.nack(originalMsg, false, !isRedelivered);
+    }
+  }
+
+  @EventPattern(BookingOutboxEvent.BOOKING_EXPIRED)
+  async handleBookingExpired(
+    @Payload()
+    data: {
+      bookingId: string;
+      bookingReference: string;
+      userId: string;
+      showtimeId: string;
+      expiredAt: string;
+      eventId?: string;
+      sourceEventId?: string;
+    },
+    @Ctx() context: RmqContext,
+  ) {
+    const channel = context.getChannelRef();
+    const originalMsg = context.getMessage();
+    const sourceEventId = data.sourceEventId || data.eventId;
+
+    this.logger.log(
+      `[NotificationsService] 🎟️ Received booking.expired for booking ${data.bookingReference}`,
+    );
+
+    const notificationDto: NotificationDto = {
+      UserId: data.userId,
+      title: 'Seat Hold Expired',
+      body: `The seat hold for booking ${data.bookingReference} has expired. Please select your seats again.`,
+      type: NotificationType.WARNING_MESSAGE,
+    };
+
+    try {
+      await this.NotificationsService.createNotification(
+        notificationDto,
+        undefined,
+        sourceEventId,
+      );
+      channel.ack(originalMsg);
+    } catch (error: any) {
+      if (error?.code === '23505') {
+        channel.ack(originalMsg);
+        return;
+      }
+      this.logger.error(
+        `Failed to process booking.expired event for booking ${data.bookingId}: ${error.message}`,
+      );
+      const isRedelivered = originalMsg.fields.redelivered;
+      channel.nack(originalMsg, false, !isRedelivered);
+    }
+  }
 }
+
 
