@@ -32,6 +32,7 @@ export class CinemasController {
     const dto: CreateCinemaDto = {
       name: data.name,
       city: data.city,
+      country: data.country,
       address: data.address,
       description: data.description,
       latitude: data.latitude,
@@ -62,6 +63,7 @@ export class CinemasController {
       page: data.page,
       limit: data.limit,
       city: data.city,
+      country: data.country,
       search: data.search,
       isActive: data.isActive !== undefined ? data.isActive : data.is_active,
     };
@@ -74,6 +76,7 @@ export class CinemasController {
     const dto: UpdateCinemaDto = {
       name: data.name,
       city: data.city,
+      country: data.country,
       address: data.address,
       description: data.description,
       latitude: data.latitude,

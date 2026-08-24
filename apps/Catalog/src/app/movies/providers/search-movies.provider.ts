@@ -1,48 +1,90 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Movie } from '@booking-ticket-system/Entities';
-import { ListMoviesQueryDto } from '@booking-ticket-system/DTOs';
+import { SearchMoviesQueryDto } from '@booking-ticket-system/DTOs';
 
 @Injectable()
-export class ListMoviesProvider {
+export class SearchMoviesProvider {
+  private readonly logger = new Logger(SearchMoviesProvider.name);
+
   constructor(
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
   ) {}
 
-  async execute(query: ListMoviesQueryDto): Promise<any> {
-    const page = Math.max(1, Number(query.page) || 1);
-    const limit = Math.max(1, Math.min(100, Number(query.limit) || 10));
+  async execute(dto: SearchMoviesQueryDto): Promise<any> {
+    const page = Math.max(1, Number(dto.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(dto.limit) || 10));
     const skip = (page - 1) * limit;
+    const similarityThreshold =
+      dto.similarityThreshold !== undefined
+        ? Number(dto.similarityThreshold)
+        : 0.25;
 
     const qb = this.movieRepository
       .createQueryBuilder('movie')
       .leftJoinAndSelect('movie.genres', 'genre');
 
-    if (query.status) {
-      qb.andWhere('movie.status = :status', { status: query.status });
+    const searchStr = dto.query
+      ? String(dto.query)
+          .replace(/<[^>]*>?/gm, '')
+          .replace(/[<>'"&;]/g, '')
+          .trim()
+      : '';
+
+    if (searchStr) {
+      this.logger.log(
+        `Executing fuzzy trigram search for: "${searchStr}" (threshold: ${similarityThreshold})`,
+      );
+      qb.addSelect(
+        'GREATEST(similarity(movie.title, :query), word_similarity(:query, movie.title))',
+        'similarity_score',
+      );
+      qb.andWhere(
+        '(GREATEST(similarity(movie.title, :query), word_similarity(:query, movie.title)) >= :similarityThreshold OR movie.title ILIKE :contains)',
+        {
+          query: searchStr,
+          similarityThreshold,
+          contains: `%${searchStr}%`,
+        },
+      );
+      qb.orderBy('similarity_score', 'DESC');
+      qb.addOrderBy('movie.releaseDate', 'DESC');
+    } else {
+      qb.orderBy('movie.releaseDate', 'DESC');
+      qb.addOrderBy('movie.createdAt', 'DESC');
     }
 
-    if (query.search && query.search.trim()) {
-      qb.andWhere('movie.title ILIKE :search', {
-        search: `%${query.search.trim()}%`,
+    // Year Range Filtering
+    if (dto.fromYear) {
+      qb.andWhere('movie.releaseDate >= :fromYearDate', {
+        fromYearDate: `${dto.fromYear}-01-01`,
       });
     }
 
-    if (query.genreId) {
-      qb.andWhere('genre.id = :genreId', { genreId: query.genreId });
+    if (dto.toYear) {
+      qb.andWhere('movie.releaseDate <= :toYearDate', {
+        toYearDate: `${dto.toYear}-12-31`,
+      });
     }
 
-    if (query.genreSlug) {
-      qb.andWhere('genre.slug = :genreSlug', { genreSlug: query.genreSlug });
+    // Exact Date Range Filtering
+    if (dto.fromDate) {
+      qb.andWhere('movie.releaseDate >= :fromDate', {
+        fromDate: dto.fromDate,
+      });
     }
 
-    qb.orderBy('movie.createdAt', 'DESC');
+    if (dto.toDate) {
+      qb.andWhere('movie.releaseDate <= :toDate', {
+        toDate: dto.toDate,
+      });
+    }
+
     qb.skip(skip).take(limit);
 
     const [items, totalItems] = await qb.getManyAndCount();
-
     const totalPages = Math.ceil(totalItems / limit);
 
     return {

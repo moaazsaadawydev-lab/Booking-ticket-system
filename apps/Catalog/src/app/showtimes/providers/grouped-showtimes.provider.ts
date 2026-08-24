@@ -6,12 +6,14 @@ import { status } from '@grpc/grpc-js';
 import { Showtime } from '@booking-ticket-system/Entities';
 import { GroupedShowtimesQueryDto } from '@booking-ticket-system/DTOs';
 import { ShowtimeStatus } from '@booking-ticket-system/Utils';
+import { CatalogCacheService } from '../../cache/catalog-cache.service';
 
 @Injectable()
 export class GroupedShowtimesProvider {
   constructor(
     @InjectRepository(Showtime)
     private readonly showtimeRepository: Repository<Showtime>,
+    private readonly cacheService: CatalogCacheService,
   ) {}
 
   async execute(query: GroupedShowtimesQueryDto): Promise<any> {
@@ -20,6 +22,12 @@ export class GroupedShowtimesProvider {
         code: status.INVALID_ARGUMENT,
         message: 'movieId and date are required',
       });
+    }
+
+    const cacheKey = `catalog:showtimes:movie:${query.movieId}:date:${query.date}${query.city ? ':city:' + query.city.trim().toLowerCase() : ''}`;
+    const cached = await this.cacheService.get<any>(cacheKey);
+    if (cached !== undefined && cached !== null) {
+      return cached;
     }
 
     const startOfDay = new Date(`${query.date}T00:00:00.000Z`);
@@ -97,10 +105,16 @@ export class GroupedShowtimesProvider {
       });
     }
 
-    return {
+    const result = {
       movie_id: query.movieId,
       date: query.date,
       cinemas: Array.from(cinemaMap.values()),
     };
+
+    await this.cacheService.set(cacheKey, result, 600, [
+      `movie:${query.movieId}`,
+    ]);
+
+    return result;
   }
 }

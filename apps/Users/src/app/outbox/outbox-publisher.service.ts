@@ -54,6 +54,7 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
 
     for (const message of pendingMessages) {
       try {
+        Logger.log(message.eventType);
         const client =
           message.eventType === 'process_profile_photo' ||
           message.eventType === 'USER_PROFILE_PHOTO_UPDATED'

@@ -6,6 +6,7 @@ import { status } from '@grpc/grpc-js';
 import { Showtime } from '@booking-ticket-system/Entities';
 import { UpdateShowtimeDto } from '@booking-ticket-system/DTOs';
 import { ShowtimeStatus } from '@booking-ticket-system/Utils';
+import { CatalogCacheService } from '../../cache/catalog-cache.service';
 
 @Injectable()
 export class UpdateShowtimeProvider {
@@ -14,6 +15,7 @@ export class UpdateShowtimeProvider {
   constructor(
     @InjectRepository(Showtime)
     private readonly showtimeRepository: Repository<Showtime>,
+    private readonly cacheService: CatalogCacheService,
   ) {}
 
   async update(id: string, dto: UpdateShowtimeDto): Promise<any> {
@@ -98,6 +100,12 @@ export class UpdateShowtimeProvider {
     const updated = await this.showtimeRepository.save(showtime);
     this.logger.log(`Updated showtime ${updated.id}`);
 
+    await this.cacheService.invalidateTags([
+      `movie:${showtime.movieId}`,
+      `auditorium:${showtime.auditoriumId}`,
+    ]);
+    await this.cacheService.invalidatePatterns(['catalog:feed:*']);
+
     return this.mapToResponse(updated);
   }
 
@@ -129,6 +137,12 @@ export class UpdateShowtimeProvider {
     const updated = await this.showtimeRepository.save(showtime);
     this.logger.log(`Updated showtime ${id} status to ${newStatus}`);
 
+    await this.cacheService.invalidateTags([
+      `movie:${showtime.movieId}`,
+      `auditorium:${showtime.auditoriumId}`,
+    ]);
+    await this.cacheService.invalidatePatterns(['catalog:feed:*']);
+
     return this.mapToResponse(updated);
   }
 
@@ -150,6 +164,13 @@ export class UpdateShowtimeProvider {
     }
 
     await this.showtimeRepository.softRemove(showtime);
+
+    await this.cacheService.invalidateTags([
+      `movie:${showtime.movieId}`,
+      `auditorium:${showtime.auditoriumId}`,
+    ]);
+    await this.cacheService.invalidatePatterns(['catalog:feed:*']);
+
     return {
       success: true,
       message: `Showtime "${id}" deleted successfully`,

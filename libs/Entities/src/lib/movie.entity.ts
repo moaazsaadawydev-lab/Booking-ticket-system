@@ -17,6 +17,7 @@ import type { Showtime } from './showtime.entity';
 
 @Entity('movies')
 @Index(['slug'], { unique: true, where: 'deleted_at IS NULL' })
+@Index(['countryOfOrigin', 'originalLanguage', 'status'])
 export class Movie {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -53,7 +54,22 @@ export class Movie {
   })
   status!: MovieStatus;
 
-  @Column({ name: 'original_language', type: 'varchar', length: 10, nullable: false })
+  @Column({
+    name: 'country_of_origin',
+    type: 'varchar',
+    length: 2,
+    nullable: true,
+    default: null,
+  })
+  countryOfOrigin!: string | null;
+
+  @Column({
+    name: 'original_language',
+    type: 'varchar',
+    length: 10,
+    nullable: false,
+    default: 'en',
+  })
   originalLanguage!: string;
 
   @Column({

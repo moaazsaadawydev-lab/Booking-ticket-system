@@ -27,6 +27,13 @@ export class ListCinemasProvider {
       });
     }
 
+    const country = query.country ?? (query as any).country;
+    if (country && country.trim()) {
+      qb.andWhere('cinema.country = :country', {
+        country: country.trim().toUpperCase(),
+      });
+    }
+
     if (query.search && query.search.trim()) {
       qb.andWhere(
         '(cinema.name ILIKE :search OR cinema.address ILIKE :search OR cinema.city ILIKE :search)',
@@ -60,6 +67,7 @@ export class ListCinemasProvider {
         slug: cinema.slug,
         description: cinema.description || null,
         city: cinema.city,
+        country: cinema.country || 'EG',
         address: cinema.address,
         latitude: cinema.latitude ? Number(cinema.latitude) : null,
         longitude: cinema.longitude ? Number(cinema.longitude) : null,

@@ -22,6 +22,10 @@ export class CreateCinemaDto {
   @IsNotEmpty()
   city!: string;
 
+  @IsOptional()
+  @IsString()
+  country?: string;
+
   @IsString()
   @IsNotEmpty()
   address!: string;
@@ -84,6 +88,10 @@ export class UpdateCinemaDto {
 
   @IsOptional()
   @IsString()
+  country?: string;
+
+  @IsOptional()
+  @IsString()
   address?: string;
 
   @IsOptional()
@@ -143,6 +151,10 @@ export class ListCinemasQueryDto {
   @IsOptional()
   @IsString()
   city?: string;
+
+  @IsOptional()
+  @IsString()
+  country?: string;
 
   @IsOptional()
   @IsString()

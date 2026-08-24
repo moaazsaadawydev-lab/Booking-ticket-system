@@ -49,6 +49,7 @@ export class MinioService implements OnModuleInit {
         'Content-Type': contentType,
       },
     );
+    this.logger.log(`Object "${objectKey}" uploaded`);
     return objectKey;
   }
 

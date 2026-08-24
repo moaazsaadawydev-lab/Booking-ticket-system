@@ -4,6 +4,7 @@ import { DataSource, Repository } from 'typeorm';
 import { Cinema, CinemaAdmin } from '@booking-ticket-system/Entities';
 import { CreateCinemaDto } from '@booking-ticket-system/DTOs';
 import { slugify } from '@booking-ticket-system/Utils';
+import { CatalogCacheService } from '../../cache/catalog-cache.service';
 
 @Injectable()
 export class CreateCinemaProvider {
@@ -13,6 +14,7 @@ export class CreateCinemaProvider {
     @InjectRepository(Cinema)
     private readonly cinemaRepository: Repository<Cinema>,
     private readonly dataSource: DataSource,
+    private readonly cacheService: CatalogCacheService,
   ) {}
 
   async execute(dto: CreateCinemaDto): Promise<any> {
@@ -26,6 +28,7 @@ export class CreateCinemaProvider {
     }
 
     const description = dto.description ?? (dto as any).description ?? null;
+    const country = dto.country ?? (dto as any).country ?? 'EG';
     const thumbnailUrl = dto.thumbnailUrl ?? (dto as any).thumbnail_url ?? null;
     const galleryUrls = dto.galleryUrls ?? (dto as any).gallery_urls ?? [];
     const phoneNumber = dto.phoneNumber ?? (dto as any).phone_number ?? null;
@@ -41,6 +44,7 @@ export class CreateCinemaProvider {
         name: dto.name,
         slug,
         city: dto.city,
+        country,
         address: dto.address,
         description,
         latitude: dto.latitude ?? null,
@@ -67,6 +71,8 @@ export class CreateCinemaProvider {
       await queryRunner.commitTransaction();
       this.logger.log(`Created cinema "${savedCinema.name}" (ID: ${savedCinema.id})`);
 
+      await this.cacheService.invalidatePatterns(['catalog:feed:*']);
+
       const fullCinema = await this.cinemaRepository.findOne({
         where: { id: savedCinema.id },
         relations: {
@@ -91,6 +97,7 @@ export class CreateCinemaProvider {
       slug: cinema.slug,
       description: cinema.description || null,
       city: cinema.city,
+      country: cinema.country || 'EG',
       address: cinema.address,
       latitude: cinema.latitude ? Number(cinema.latitude) : null,
       longitude: cinema.longitude ? Number(cinema.longitude) : null,

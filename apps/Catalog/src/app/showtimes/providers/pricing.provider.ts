@@ -5,6 +5,7 @@ import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import { Showtime, ShowtimeSeatPricing } from '@booking-ticket-system/Entities';
 import { SetShowtimeSeatPricingsDto } from '@booking-ticket-system/DTOs';
+import { CatalogCacheService } from '../../cache/catalog-cache.service';
 
 @Injectable()
 export class ShowtimePricingProvider {
@@ -16,6 +17,7 @@ export class ShowtimePricingProvider {
     @InjectRepository(ShowtimeSeatPricing)
     private readonly pricingRepository: Repository<ShowtimeSeatPricing>,
     private readonly dataSource: DataSource,
+    private readonly cacheService: CatalogCacheService,
   ) {}
 
   async setPricings(dto: SetShowtimeSeatPricingsDto): Promise<any> {
@@ -74,6 +76,12 @@ export class ShowtimePricingProvider {
       });
 
       showtime.seatPricings = updatedPricings;
+
+      await this.cacheService.invalidateTags([
+        `movie:${showtime.movieId}`,
+        `auditorium:${showtime.auditoriumId}`,
+      ]);
+
       return this.mapToResponse(showtime);
     } catch (error) {
       await queryRunner.rollbackTransaction();

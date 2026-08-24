@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import { Auditorium, Seat } from '@booking-ticket-system/Entities';
+import { CatalogCacheService } from '../../cache/catalog-cache.service';
 
 @Injectable()
 export class GetSeatsProvider {
@@ -12,6 +13,7 @@ export class GetSeatsProvider {
     private readonly auditoriumRepository: Repository<Auditorium>,
     @InjectRepository(Seat)
     private readonly seatRepository: Repository<Seat>,
+    private readonly cacheService: CatalogCacheService,
   ) {}
 
   async execute(auditoriumId: string): Promise<any> {
@@ -22,11 +24,25 @@ export class GetSeatsProvider {
       });
     }
 
+    const cacheKey = `catalog:auditorium:${auditoriumId}:layout`;
+    const cached = await this.cacheService.get<any>(cacheKey);
+
+    if (cached !== undefined) {
+      if (cached === null) {
+        throw new RpcException({
+          code: status.NOT_FOUND,
+          message: `Auditorium with ID "${auditoriumId}" not found`,
+        });
+      }
+      return cached;
+    }
+
     const auditorium = await this.auditoriumRepository.findOne({
       where: { id: auditoriumId },
     });
 
     if (!auditorium) {
+      await this.cacheService.setNullSentinel(cacheKey, 60);
       throw new RpcException({
         code: status.NOT_FOUND,
         message: `Auditorium with ID "${auditoriumId}" not found`,
@@ -38,7 +54,7 @@ export class GetSeatsProvider {
       order: { gridRow: 'ASC', gridColumn: 'ASC' },
     });
 
-    return {
+    const response = {
       auditorium_id: auditorium.id,
       total_rows: auditorium.totalRows,
       total_columns: auditorium.totalColumns,
@@ -56,5 +72,11 @@ export class GetSeatsProvider {
         updated_at: s.updatedAt?.toISOString(),
       })),
     };
+
+    await this.cacheService.set(cacheKey, response, 43200, [
+      `auditorium:${auditoriumId}`,
+    ]);
+
+    return response;
   }
 }

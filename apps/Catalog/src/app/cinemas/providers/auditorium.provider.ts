@@ -6,6 +6,7 @@ import { status } from '@grpc/grpc-js';
 import { Auditorium, Cinema, Seat, Showtime } from '@booking-ticket-system/Entities';
 import { CreateAuditoriumDto, UpdateAuditoriumDto } from '@booking-ticket-system/DTOs';
 import { SeatType } from '@booking-ticket-system/Utils';
+import { CatalogCacheService } from '../../cache/catalog-cache.service';
 
 @Injectable()
 export class AuditoriumProvider {
@@ -20,6 +21,7 @@ export class AuditoriumProvider {
     private readonly seatRepository: Repository<Seat>,
     @InjectRepository(Showtime)
     private readonly showtimeRepository: Repository<Showtime>,
+    private readonly cacheService: CatalogCacheService,
   ) {}
 
   async create(dto: CreateAuditoriumDto): Promise<any> {
@@ -72,6 +74,12 @@ export class AuditoriumProvider {
     this.logger.log(
       `Created auditorium "${savedAuditorium.name}" with ${seatsToInsert.length} auto-generated seats.`,
     );
+
+    await this.cacheService.invalidateTags([
+      `cinema:${dto.cinemaId}`,
+      `auditorium:${savedAuditorium.id}`,
+    ]);
+    await this.cacheService.invalidatePatterns(['catalog:feed:*']);
 
     return this.mapToResponse(savedAuditorium);
   }
@@ -148,6 +156,13 @@ export class AuditoriumProvider {
     }
 
     const updated = await this.auditoriumRepository.save(auditorium);
+
+    await this.cacheService.invalidateTags([
+      `cinema:${auditorium.cinemaId}`,
+      `auditorium:${id}`,
+    ]);
+    await this.cacheService.invalidatePatterns(['catalog:feed:*']);
+
     return this.mapToResponse(updated);
   }
 
@@ -182,6 +197,13 @@ export class AuditoriumProvider {
     }
 
     await this.auditoriumRepository.softRemove(auditorium);
+
+    await this.cacheService.invalidateTags([
+      `cinema:${auditorium.cinemaId}`,
+      `auditorium:${id}`,
+    ]);
+    await this.cacheService.invalidatePatterns(['catalog:feed:*']);
+
     return {
       success: true,
       message: `Auditorium "${auditorium.name}" deleted successfully`,

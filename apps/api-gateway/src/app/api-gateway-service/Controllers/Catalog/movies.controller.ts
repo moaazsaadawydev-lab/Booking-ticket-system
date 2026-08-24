@@ -12,9 +12,19 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { CreateMovieDto, ListMoviesQueryDto, UpdateMovieDto } from '@booking-ticket-system/DTOs';
-import { JwtAuthGuard, RolesGuard } from '@booking-ticket-system/Guards';
-import { Roles } from '@booking-ticket-system/Decorators';
+import {
+  CreateMovieDto,
+  DiscoveryFeedQueryDto,
+  ListMoviesQueryDto,
+  SearchMoviesQueryDto,
+  UpdateMovieDto,
+} from '@booking-ticket-system/DTOs';
+import {
+  JwtAuthGuard,
+  OptionalJwtAuthGuard,
+  RolesGuard,
+} from '@booking-ticket-system/Guards';
+import { CurrentUser, Roles } from '@booking-ticket-system/Decorators';
 import { UserRole } from '@booking-ticket-system/Utils';
 import { TransformResponseInterceptor } from '@booking-ticket-system/Common';
 import { CatalogProvider } from '../../providers';
@@ -30,6 +40,25 @@ export class CatalogMoviesController {
   @HttpCode(HttpStatus.CREATED)
   async createMovie(@Body() body: CreateMovieDto) {
     return this.catalogProvider.createMovie(body);
+  }
+
+  @Get('discovery/feed')
+  @UseGuards(OptionalJwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getDiscoveryFeed(
+    @Query() query: DiscoveryFeedQueryDto,
+    @CurrentUser() user?: any,
+  ) {
+    const country = query.country || user?.country || 'EG';
+    const language = query.language || 'ar';
+    const limit = query.limit ? Number(query.limit) : 10;
+    return this.catalogProvider.getDiscoveryFeed({ country, language, limit });
+  }
+
+  @Get('search')
+  @HttpCode(HttpStatus.OK)
+  async searchMovies(@Query() query: SearchMoviesQueryDto) {
+    return this.catalogProvider.searchMovies(query);
   }
 
   @Get('genres')

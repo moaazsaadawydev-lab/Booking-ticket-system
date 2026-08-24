@@ -6,6 +6,7 @@ import { status } from '@grpc/grpc-js';
 import { Genre, Movie } from '@booking-ticket-system/Entities';
 import { UpdateMovieDto } from '@booking-ticket-system/DTOs';
 import { slugify } from '@booking-ticket-system/Utils';
+import { CatalogCacheService } from '../../cache/catalog-cache.service';
 
 @Injectable()
 export class UpdateMovieProvider {
@@ -16,6 +17,7 @@ export class UpdateMovieProvider {
     private readonly movieRepository: Repository<Movie>,
     @InjectRepository(Genre)
     private readonly genreRepository: Repository<Genre>,
+    private readonly cacheService: CatalogCacheService,
   ) {}
 
   async execute(id: string, dto: UpdateMovieDto): Promise<any> {
@@ -59,6 +61,7 @@ export class UpdateMovieProvider {
 
     const releaseDate = dto.releaseDate ?? (dto as any).release_date;
     const ageRating = dto.ageRating ?? (dto as any).age_rating;
+    const countryOfOrigin = dto.countryOfOrigin ?? (dto as any).country_of_origin;
     const originalLanguage = dto.originalLanguage ?? (dto as any).original_language;
     const spokenLanguages = dto.spokenLanguages ?? (dto as any).spoken_languages;
     const posterUrl = dto.posterUrl ?? (dto as any).poster_url;
@@ -72,6 +75,7 @@ export class UpdateMovieProvider {
     if (releaseDate !== undefined) movie.releaseDate = releaseDate;
     if (ageRating !== undefined) movie.ageRating = ageRating;
     if (dto.status !== undefined) movie.status = dto.status;
+    if (countryOfOrigin !== undefined) movie.countryOfOrigin = countryOfOrigin;
     if (originalLanguage !== undefined) movie.originalLanguage = originalLanguage;
     if (spokenLanguages !== undefined) movie.spokenLanguages = spokenLanguages;
     if (dto.subtitles !== undefined) movie.subtitles = dto.subtitles;
@@ -95,6 +99,9 @@ export class UpdateMovieProvider {
     const updated = await this.movieRepository.save(movie);
     this.logger.log(`Updated movie "${updated.title}" (ID: ${updated.id})`);
 
+    await this.cacheService.invalidateTags([`movie:${id}`]);
+    await this.cacheService.invalidatePatterns(['catalog:feed:*']);
+
     return this.mapToResponse(updated);
   }
 
@@ -111,6 +118,7 @@ export class UpdateMovieProvider {
           : String(movie.releaseDate),
       age_rating: movie.ageRating,
       status: movie.status,
+      country_of_origin: movie.countryOfOrigin || null,
       original_language: movie.originalLanguage,
       spoken_languages: movie.spokenLanguages || [],
       subtitles: movie.subtitles || [],

@@ -1,11 +1,11 @@
 const { execSync } = require('child_process');
+const Redis = require('ioredis');
 
 function truncateTables(dbName, excludedTables = []) {
   const exclusions = [...excludedTables, 'typeorm_metadata', 'migrations']
     .map((t) => `'${t}'`)
     .join(', ');
 
-  // استعلام SQL يجمع أسماء كل الجداول وينفذ TRUNCATE cascade في سطر واحد
   const sqlCommand = `
     SELECT 'TRUNCATE TABLE ' || string_agg(quote_ident(tablename), ', ') || ' RESTART IDENTITY CASCADE;' 
     FROM pg_tables 
@@ -18,14 +18,12 @@ function truncateTables(dbName, excludedTables = []) {
   try {
     console.log(`🧹 Truncating tables in [${dbName}]...`);
 
-    // 1. استخراج أمر التصفير المولد
     const truncateSql = execSync(
       `docker exec -i postgres psql -U postgres -d "${dbName}" -t -A -c "${sqlCommand}"`,
       { encoding: 'utf8' },
     ).trim();
 
     if (truncateSql && truncateSql.startsWith('TRUNCATE TABLE')) {
-      // 2. تنفيذ التصفير الفعلي
       execSync(
         `docker exec -i postgres psql -U postgres -d "${dbName}" -c "${truncateSql}"`,
         {
@@ -43,4 +41,4 @@ function truncateTables(dbName, excludedTables = []) {
 
 truncateTables('Booking-Catalog', ['genres']);
 truncateTables('Booking-Users');
-truncateTables('Booking-Notifications');
+truncateTables('Booking-Notification');

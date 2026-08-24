@@ -6,6 +6,7 @@ import { status } from '@grpc/grpc-js';
 import { Auditorium, Seat } from '@booking-ticket-system/Entities';
 import { GenerateSeatLayoutDto } from '@booking-ticket-system/DTOs';
 import { SeatType } from '@booking-ticket-system/Utils';
+import { CatalogCacheService } from '../../cache/catalog-cache.service';
 
 @Injectable()
 export class GenerateSeatLayoutProvider {
@@ -17,6 +18,7 @@ export class GenerateSeatLayoutProvider {
     @InjectRepository(Seat)
     private readonly seatRepository: Repository<Seat>,
     private readonly dataSource: DataSource,
+    private readonly cacheService: CatalogCacheService,
   ) {}
 
   async execute(dto: GenerateSeatLayoutDto): Promise<any> {
@@ -98,6 +100,10 @@ export class GenerateSeatLayoutProvider {
         where: { auditoriumId: dto.auditoriumId },
         order: { gridRow: 'ASC', gridColumn: 'ASC' },
       });
+
+      await this.cacheService.invalidateTags([
+        `auditorium:${dto.auditoriumId}`,
+      ]);
 
       return {
         auditorium_id: auditorium.id,

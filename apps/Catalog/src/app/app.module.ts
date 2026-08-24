@@ -19,9 +19,11 @@ import { MoviesModule } from './movies/movies.module';
 import { CinemasModule } from './cinemas/cinemas.module';
 import { SeatsModule } from './seats/seats.module';
 import { ShowtimesModule } from './showtimes/showtimes.module';
+import { CatalogCacheModule } from './cache/catalog-cache.module';
 
 @Module({
   imports: [
+    CatalogCacheModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: `libs/env/.env.${process.env['NODE_ENV'] || 'development'}`,

@@ -6,6 +6,7 @@ import { status } from '@grpc/grpc-js';
 import { Cinema } from '@booking-ticket-system/Entities';
 import { UpdateCinemaDto } from '@booking-ticket-system/DTOs';
 import { slugify } from '@booking-ticket-system/Utils';
+import { CatalogCacheService } from '../../cache/catalog-cache.service';
 
 @Injectable()
 export class UpdateCinemaProvider {
@@ -14,6 +15,7 @@ export class UpdateCinemaProvider {
   constructor(
     @InjectRepository(Cinema)
     private readonly cinemaRepository: Repository<Cinema>,
+    private readonly cacheService: CatalogCacheService,
   ) {}
 
   async execute(id: string, dto: UpdateCinemaDto): Promise<any> {
@@ -49,6 +51,7 @@ export class UpdateCinemaProvider {
     }
 
     const description = dto.description ?? (dto as any).description;
+    const country = dto.country ?? (dto as any).country;
     const thumbnailUrl = dto.thumbnailUrl ?? (dto as any).thumbnail_url;
     const galleryUrls = dto.galleryUrls ?? (dto as any).gallery_urls;
     const phoneNumber = dto.phoneNumber ?? (dto as any).phone_number;
@@ -60,6 +63,7 @@ export class UpdateCinemaProvider {
           : undefined;
 
     if (dto.city !== undefined) cinema.city = dto.city;
+    if (country !== undefined) cinema.country = country;
     if (dto.address !== undefined) cinema.address = dto.address;
     if (description !== undefined) cinema.description = description;
     if (dto.latitude !== undefined) cinema.latitude = dto.latitude;
@@ -73,12 +77,16 @@ export class UpdateCinemaProvider {
     const updated = await this.cinemaRepository.save(cinema);
     this.logger.log(`Updated cinema "${updated.name}" (ID: ${updated.id})`);
 
+    await this.cacheService.invalidateTags([`cinema:${id}`]);
+    await this.cacheService.invalidatePatterns(['catalog:feed:*']);
+
     return {
       id: updated.id,
       name: updated.name,
       slug: updated.slug,
       description: updated.description || null,
       city: updated.city,
+      country: updated.country || 'EG',
       address: updated.address,
       latitude: updated.latitude ? Number(updated.latitude) : null,
       longitude: updated.longitude ? Number(updated.longitude) : null,

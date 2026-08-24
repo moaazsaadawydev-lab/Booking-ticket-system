@@ -11,9 +11,11 @@ service MoviesService {
   rpc GetMovieById(GetMovieByIdRequest) returns (MovieResponse) {}
   rpc GetMovieBySlug(GetMovieBySlugRequest) returns (MovieResponse) {}
   rpc ListMovies(ListMoviesRequest) returns (ListMoviesResponse) {}
+  rpc SearchMovies(SearchMoviesRequest) returns (ListMoviesResponse) {}
   rpc UpdateMovie(UpdateMovieRequest) returns (MovieResponse) {}
   rpc DeleteMovie(DeleteMovieRequest) returns (DeleteMovieResponse) {}
   rpc ListGenres(ListGenresRequest) returns (ListGenresResponse) {}
+  rpc GetDiscoveryFeed(DiscoveryFeedRequest) returns (DiscoveryFeedResponse) {}
 }
 
 service CinemasService {
@@ -143,6 +145,7 @@ message MovieResponse {
   repeated GenreResponse genres = 20;
   string created_at = 21;
   string updated_at = 22;
+  optional string country_of_origin = 23;
 }
 
 message CinemaResponse {
@@ -163,6 +166,7 @@ message CinemaResponse {
   repeated AuditoriumResponse auditoriums = 15;
   string created_at = 16;
   string updated_at = 17;
+  string country = 18;
 }
 
 message AuditoriumResponse {
@@ -247,6 +251,7 @@ message CreateMovieRequest {
   repeated string directors = 14;
   repeated string cast = 15;
   repeated string genre_ids = 16;
+  optional string country_of_origin = 17;
 }
 
 message GetMovieByIdRequest {
@@ -264,6 +269,17 @@ message ListMoviesRequest {
   optional string search = 4;
   optional string genre_id = 5;
   optional string genre_slug = 6;
+}
+
+message SearchMoviesRequest {
+  optional string query = 1;
+  optional int32 from_year = 2;
+  optional int32 to_year = 3;
+  optional string from_date = 4;
+  optional string to_date = 5;
+  optional float similarity_threshold = 6;
+  optional int32 page = 7;
+  optional int32 limit = 8;
 }
 
 message ListMoviesResponse {
@@ -289,6 +305,7 @@ message UpdateMovieRequest {
   repeated string directors = 15;
   repeated string cast = 16;
   repeated string genre_ids = 17;
+  optional string country_of_origin = 18;
 }
 
 message DeleteMovieRequest {
@@ -304,6 +321,19 @@ message ListGenresRequest {}
 
 message ListGenresResponse {
   repeated GenreResponse genres = 1;
+}
+
+message DiscoveryFeedRequest {
+  string country = 1;
+  string language = 2;
+  optional int32 limit = 3;
+}
+
+message DiscoveryFeedResponse {
+  repeated MovieResponse featured = 1;
+  repeated MovieResponse now_showing_local = 2;
+  repeated MovieResponse coming_soon_local = 3;
+  repeated MovieResponse top_rated = 4;
 }
 
 // ==========================================
@@ -323,6 +353,7 @@ message CreateCinemaRequest {
   repeated string gallery_urls = 10;
   optional bool is_active = 11;
   repeated string admin_user_ids = 12;
+  optional string country = 13;
 }
 
 message GetCinemaByIdRequest {
@@ -339,6 +370,7 @@ message ListCinemasRequest {
   optional string city = 3;
   optional string search = 4;
   optional bool is_active = 5;
+  optional string country = 6;
 }
 
 message ListCinemasResponse {
@@ -359,6 +391,7 @@ message UpdateCinemaRequest {
   optional string thumbnail_url = 10;
   repeated string gallery_urls = 11;
   optional bool is_active = 12;
+  optional string country = 13;
 }
 
 message DeleteCinemaRequest {

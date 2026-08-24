@@ -1,11 +1,15 @@
 import {
   IsArray,
+  IsDateString,
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
+  Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
@@ -43,6 +47,11 @@ export class CreateMovieDto {
   @IsOptional()
   @IsEnum(MovieStatus)
   status?: MovieStatus;
+
+  @Transform(({ obj }) => obj.country_of_origin ?? obj.countryOfOrigin)
+  @IsOptional()
+  @IsString()
+  countryOfOrigin?: string;
 
   @Transform(({ obj }) => obj.original_language ?? obj.originalLanguage)
   @IsString()
@@ -131,6 +140,11 @@ export class UpdateMovieDto {
   @IsEnum(MovieStatus)
   status?: MovieStatus;
 
+  @Transform(({ obj }) => obj.country_of_origin ?? obj.countryOfOrigin)
+  @IsOptional()
+  @IsString()
+  countryOfOrigin?: string;
+
   @Transform(({ obj }) => obj.original_language ?? obj.originalLanguage)
   @IsOptional()
   @IsString()
@@ -216,3 +230,96 @@ export class ListMoviesQueryDto {
   @IsString()
   genreSlug?: string;
 }
+
+export class DiscoveryFeedQueryDto {
+  @IsOptional()
+  @IsString()
+  country?: string;
+
+  @IsOptional()
+  @IsString()
+  language?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  limit?: number = 10;
+}
+
+export class SearchMoviesQueryDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  @Transform(({ value }) =>
+    typeof value === 'string'
+      ? value.replace(/[<>'"&;]/g, '').trim()
+      : value,
+  )
+  query?: string;
+
+  @Transform(({ obj }) =>
+    obj.from_year !== undefined
+      ? Number(obj.from_year)
+      : obj.fromYear !== undefined
+        ? Number(obj.fromYear)
+        : undefined,
+  )
+  @IsOptional()
+  @IsInt()
+  @Min(1900)
+  @Max(2030)
+  @Type(() => Number)
+  fromYear?: number;
+
+  @Transform(({ obj }) =>
+    obj.to_year !== undefined
+      ? Number(obj.to_year)
+      : obj.toYear !== undefined
+        ? Number(obj.toYear)
+        : undefined,
+  )
+  @IsOptional()
+  @IsInt()
+  @Min(1900)
+  @Max(2030)
+  @Type(() => Number)
+  toYear?: number;
+
+  @Transform(({ obj }) => obj.from_date ?? obj.fromDate)
+  @IsOptional()
+  @IsDateString()
+  fromDate?: string;
+
+  @Transform(({ obj }) => obj.to_date ?? obj.toDate)
+  @IsOptional()
+  @IsDateString()
+  toDate?: string;
+
+  @Transform(({ obj }) =>
+    obj.similarity_threshold !== undefined
+      ? Number(obj.similarity_threshold)
+      : obj.similarityThreshold !== undefined
+        ? Number(obj.similarityThreshold)
+        : 0.25,
+  )
+  @IsOptional()
+  @IsNumber()
+  @Min(0.1)
+  @Max(1.0)
+  @Type(() => Number)
+  similarityThreshold?: number = 0.25;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  page?: number = 1;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  limit?: number = 10;
+}
+

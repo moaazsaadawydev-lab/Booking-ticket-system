@@ -8,11 +8,13 @@ import {
   CreateCinemaDto,
   CreateMovieDto,
   CreateShowtimeDto,
+  DiscoveryFeedQueryDto,
   GenerateSeatLayoutDto,
   GroupedShowtimesQueryDto,
   ListCinemasQueryDto,
   ListMoviesQueryDto,
   ListShowtimesQueryDto,
+  SearchMoviesQueryDto,
   SetShowtimeSeatPricingsDto,
   UpdateAuditoriumDto,
   UpdateCinemaDto,
@@ -45,6 +47,7 @@ export class CatalogProvider implements OnModuleInit {
     const durationMinutes = Number(dto.durationMinutes ?? (dto as any).duration_minutes);
     const releaseDate = String(dto.releaseDate ?? (dto as any).release_date);
     const ageRating = String(dto.ageRating ?? (dto as any).age_rating);
+    const countryOfOrigin = dto.countryOfOrigin ?? (dto as any).country_of_origin;
     const originalLanguage = String(dto.originalLanguage ?? (dto as any).original_language);
     const spokenLanguages = dto.spokenLanguages ?? (dto as any).spoken_languages ?? [];
     const subtitles = dto.subtitles ?? [];
@@ -67,6 +70,8 @@ export class CatalogProvider implements OnModuleInit {
         ageRating,
         age_rating: ageRating,
         status: dto.status,
+        countryOfOrigin,
+        country_of_origin: countryOfOrigin,
         originalLanguage,
         original_language: originalLanguage,
         spokenLanguages,
@@ -97,7 +102,7 @@ export class CatalogProvider implements OnModuleInit {
   }
 
   async listMovies(query: ListMoviesQueryDto) {
-    return await lastValueFrom(
+    const res: any = await lastValueFrom(
       this.moviesService.ListMovies({
         page: query.page,
         limit: query.limit,
@@ -109,6 +114,50 @@ export class CatalogProvider implements OnModuleInit {
         genre_slug: query.genreSlug ?? (query as any).genre_slug,
       }),
     );
+    return {
+      items: res?.items || [],
+      meta: res?.meta || {},
+    };
+  }
+
+  async searchMovies(query: SearchMoviesQueryDto) {
+    const res: any = await lastValueFrom(
+      this.moviesService.SearchMovies({
+        query: query.query,
+        fromYear: query.fromYear,
+        from_year: query.fromYear,
+        toYear: query.toYear,
+        to_year: query.toYear,
+        fromDate: query.fromDate,
+        from_date: query.fromDate,
+        toDate: query.toDate,
+        to_date: query.toDate,
+        similarityThreshold: query.similarityThreshold,
+        similarity_threshold: query.similarityThreshold,
+        page: query.page,
+        limit: query.limit,
+      }),
+    );
+    return {
+      items: res?.items || [],
+      meta: res?.meta || {},
+    };
+  }
+
+  async getDiscoveryFeed(query: DiscoveryFeedQueryDto) {
+    const res: any = await lastValueFrom(
+      this.moviesService.GetDiscoveryFeed({
+        country: query.country,
+        language: query.language,
+        limit: query.limit,
+      }),
+    );
+    return {
+      featured: res?.featured || [],
+      now_showing_local: res?.now_showing_local || res?.nowShowingLocal || [],
+      coming_soon_local: res?.coming_soon_local || res?.comingSoonLocal || [],
+      top_rated: res?.top_rated || res?.topRated || [],
+    };
   }
 
   async updateMovie(id: string, dto: UpdateMovieDto) {
@@ -118,6 +167,8 @@ export class CatalogProvider implements OnModuleInit {
         : (dto as any).duration_minutes !== undefined
           ? Number((dto as any).duration_minutes)
           : undefined;
+
+    const countryOfOrigin = dto.countryOfOrigin ?? (dto as any).country_of_origin;
 
     return await lastValueFrom(
       this.moviesService.UpdateMovie({
@@ -131,6 +182,8 @@ export class CatalogProvider implements OnModuleInit {
         ageRating: dto.ageRating ?? (dto as any).age_rating,
         age_rating: dto.ageRating ?? (dto as any).age_rating,
         status: dto.status,
+        countryOfOrigin,
+        country_of_origin: countryOfOrigin,
         originalLanguage: dto.originalLanguage ?? (dto as any).original_language,
         original_language: dto.originalLanguage ?? (dto as any).original_language,
         spokenLanguages: dto.spokenLanguages ?? (dto as any).spoken_languages,
@@ -163,6 +216,7 @@ export class CatalogProvider implements OnModuleInit {
   // --- Cinemas ---
   async createCinema(dto: CreateCinemaDto) {
     const phoneNumber = dto.phoneNumber ?? (dto as any).phone_number ?? null;
+    const country = dto.country ?? (dto as any).country ?? 'EG';
     const description = dto.description ?? (dto as any).description ?? null;
     const thumbnailUrl = dto.thumbnailUrl ?? (dto as any).thumbnail_url ?? null;
     const galleryUrls = dto.galleryUrls ?? (dto as any).gallery_urls ?? [];
@@ -173,6 +227,7 @@ export class CatalogProvider implements OnModuleInit {
       this.cinemasService.CreateCinema({
         name: dto.name,
         city: dto.city,
+        country,
         address: dto.address,
         description,
         latitude: dto.latitude,
@@ -209,6 +264,7 @@ export class CatalogProvider implements OnModuleInit {
         page: query.page,
         limit: query.limit,
         city: query.city,
+        country: query.country,
         search: query.search,
         isActive,
         is_active: isActive,
@@ -218,6 +274,7 @@ export class CatalogProvider implements OnModuleInit {
 
   async updateCinema(id: string, dto: UpdateCinemaDto) {
     const phoneNumber = dto.phoneNumber ?? (dto as any).phone_number;
+    const country = dto.country ?? (dto as any).country;
     const description = dto.description ?? (dto as any).description;
     const thumbnailUrl = dto.thumbnailUrl ?? (dto as any).thumbnail_url;
     const galleryUrls = dto.galleryUrls ?? (dto as any).gallery_urls;

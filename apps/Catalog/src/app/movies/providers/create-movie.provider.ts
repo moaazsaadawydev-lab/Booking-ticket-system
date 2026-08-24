@@ -4,6 +4,7 @@ import { In, Repository } from 'typeorm';
 import { Genre, Movie } from '@booking-ticket-system/Entities';
 import { CreateMovieDto } from '@booking-ticket-system/DTOs';
 import { slugify } from '@booking-ticket-system/Utils';
+import { CatalogCacheService } from '../../cache/catalog-cache.service';
 
 @Injectable()
 export class CreateMovieProvider {
@@ -14,6 +15,7 @@ export class CreateMovieProvider {
     private readonly movieRepository: Repository<Movie>,
     @InjectRepository(Genre)
     private readonly genreRepository: Repository<Genre>,
+    private readonly cacheService: CatalogCacheService,
   ) {}
 
   async execute(dto: CreateMovieDto): Promise<any> {
@@ -37,7 +39,8 @@ export class CreateMovieProvider {
     const durationMinutes = Number(dto.durationMinutes ?? (dto as any).duration_minutes);
     const releaseDate = dto.releaseDate ?? (dto as any).release_date;
     const ageRating = dto.ageRating ?? (dto as any).age_rating;
-    const originalLanguage = dto.originalLanguage ?? (dto as any).original_language;
+    const countryOfOrigin = dto.countryOfOrigin ?? (dto as any).country_of_origin ?? null;
+    const originalLanguage = dto.originalLanguage ?? (dto as any).original_language ?? 'en';
     const spokenLanguages = dto.spokenLanguages ?? (dto as any).spoken_languages ?? [];
     const subtitles = dto.subtitles ?? [];
     const posterUrl = dto.posterUrl ?? (dto as any).poster_url ?? null;
@@ -55,6 +58,7 @@ export class CreateMovieProvider {
       releaseDate,
       ageRating,
       status: dto.status,
+      countryOfOrigin,
       originalLanguage,
       spokenLanguages,
       subtitles,
@@ -72,6 +76,8 @@ export class CreateMovieProvider {
     const savedMovie = await this.movieRepository.save(movie);
     this.logger.log(`Created movie "${savedMovie.title}" (ID: ${savedMovie.id})`);
 
+    await this.cacheService.invalidatePatterns(['catalog:feed:*']);
+
     return this.mapToResponse(savedMovie);
   }
 
@@ -88,6 +94,7 @@ export class CreateMovieProvider {
           : String(movie.releaseDate),
       age_rating: movie.ageRating,
       status: movie.status,
+      country_of_origin: movie.countryOfOrigin || null,
       original_language: movie.originalLanguage,
       spoken_languages: movie.spokenLanguages || [],
       subtitles: movie.subtitles || [],

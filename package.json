@@ -34,7 +34,9 @@
     "migration:run:catalog": "cross-env TS_NODE_PROJECT=tsconfig.base.json node -r @swc-node/register -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:run -d apps/Catalog/src/db/data-source.ts",
     "migration:revert:catalog": "cross-env TS_NODE_PROJECT=tsconfig.base.json node -r @swc-node/register -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:revert -d apps/Catalog/src/db/data-source.ts",
     "seed:catalog:genres": "cross-env TS_NODE_PROJECT=tsconfig.base.json node -r @swc-node/register -r tsconfig-paths/register apps/Catalog/src/db/seeds/seed-genres.ts",
-    "db:clean": "node scripts/reset-db.js"
+    "db:clean": "node scripts/Rests/reset-db.js",
+    "redis:clean": "node scripts/Rests/reset-redis.js",
+    "full:reset": "npm run db:clean && npm run redis:clean"
   },
   "private": true,
   "devDependencies": {

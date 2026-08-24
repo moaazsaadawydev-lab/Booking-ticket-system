@@ -31,6 +31,10 @@ export class Cinema {
   @Column({ type: 'varchar', length: 100, nullable: false })
   city!: string;
 
+  @Index()
+  @Column({ type: 'varchar', length: 2, default: 'EG', nullable: false })
+  country!: string;
+
   @Column({ type: 'text', nullable: false })
   address!: string;
 

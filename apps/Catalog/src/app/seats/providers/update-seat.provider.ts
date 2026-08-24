@@ -5,6 +5,7 @@ import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import { Seat } from '@booking-ticket-system/Entities';
 import { BatchUpdateSeatsDto, UpdateSeatDto } from '@booking-ticket-system/DTOs';
+import { CatalogCacheService } from '../../cache/catalog-cache.service';
 
 @Injectable()
 export class UpdateSeatProvider {
@@ -13,6 +14,7 @@ export class UpdateSeatProvider {
   constructor(
     @InjectRepository(Seat)
     private readonly seatRepository: Repository<Seat>,
+    private readonly cacheService: CatalogCacheService,
   ) {}
 
   async updateSingle(id: string, dto: UpdateSeatDto): Promise<any> {
@@ -37,6 +39,11 @@ export class UpdateSeatProvider {
       seat.isOperational = dto.isOperational;
 
     const updated = await this.seatRepository.save(seat);
+
+    await this.cacheService.invalidateTags([
+      `auditorium:${updated.auditoriumId}`,
+    ]);
+
     return {
       id: updated.id,
       auditorium_id: updated.auditoriumId,
@@ -88,6 +95,8 @@ export class UpdateSeatProvider {
     this.logger.log(
       `Batch updated ${updatedCount} seats for auditorium "${dto.auditoriumId}"`,
     );
+
+    await this.cacheService.invalidateTags([`auditorium:${dto.auditoriumId}`]);
 
     return {
       success: true,

@@ -11,6 +11,7 @@ import {
 } from '@booking-ticket-system/Entities';
 import { CreateShowtimeDto } from '@booking-ticket-system/DTOs';
 import { ShowtimeStatus } from '@booking-ticket-system/Utils';
+import { CatalogCacheService } from '../../cache/catalog-cache.service';
 
 @Injectable()
 export class CreateShowtimeProvider {
@@ -24,6 +25,7 @@ export class CreateShowtimeProvider {
     @InjectRepository(Showtime)
     private readonly showtimeRepository: Repository<Showtime>,
     private readonly dataSource: DataSource,
+    private readonly cacheService: CatalogCacheService,
   ) {}
 
   async execute(dto: CreateShowtimeDto): Promise<any> {
@@ -133,6 +135,13 @@ export class CreateShowtimeProvider {
       savedShowtime.movie = movie;
       savedShowtime.auditorium = auditorium;
       savedShowtime.seatPricings = seatPricings;
+
+      await this.cacheService.invalidateTags([
+        `movie:${dto.movieId}`,
+        `auditorium:${dto.auditoriumId}`,
+        `cinema:${auditorium.cinemaId}`,
+      ]);
+      await this.cacheService.invalidatePatterns(['catalog:feed:*']);
 
       return this.mapToResponse(savedShowtime);
     } catch (error) {

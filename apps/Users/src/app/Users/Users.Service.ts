@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   LoginDto,
   VerifyEmailDto,
@@ -56,6 +56,7 @@ export class UsersService {
   }
 
   updateAvatar(userId: string, mediaUrl: string) {
+    Logger.log('updateAvatar', userId, mediaUrl);
     return this.profileProvider.updateAvatar(userId, mediaUrl);
   }
 

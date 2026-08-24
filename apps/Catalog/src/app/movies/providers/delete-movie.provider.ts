@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import { Movie, Showtime } from '@booking-ticket-system/Entities';
+import { CatalogCacheService } from '../../cache/catalog-cache.service';
 
 @Injectable()
 export class DeleteMovieProvider {
@@ -14,6 +15,7 @@ export class DeleteMovieProvider {
     private readonly movieRepository: Repository<Movie>,
     @InjectRepository(Showtime)
     private readonly showtimeRepository: Repository<Showtime>,
+    private readonly cacheService: CatalogCacheService,
   ) {}
 
   async execute(id: string): Promise<{ success: boolean; message: string }> {
@@ -46,6 +48,9 @@ export class DeleteMovieProvider {
 
     await this.movieRepository.softRemove(movie);
     this.logger.log(`Soft-deleted movie "${movie.title}" (ID: ${movie.id})`);
+
+    await this.cacheService.invalidateTags([`movie:${id}`]);
+    await this.cacheService.invalidatePatterns(['catalog:feed:*']);
 
     return {
       success: true,
