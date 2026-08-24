@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
@@ -6,14 +7,16 @@ import {
   NotFoundException,
   Param,
   ParseUUIDPipe,
+  Post,
   Res,
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { JwtAuthGuard } from '@booking-ticket-system/Guards';
-import { CurrentUser } from '@booking-ticket-system/Decorators';
+import { JwtAuthGuard, RolesGuard } from '@booking-ticket-system/Guards';
+import { CurrentUser, Roles } from '@booking-ticket-system/Decorators';
 import { UserRole } from '@booking-ticket-system/Utils';
 import { QrCodeService } from '@booking-ticket-system/Common';
+import { ValidateTicketDto } from '@booking-ticket-system/DTOs';
 import { BookingProvider } from '../../providers/booking.provider';
 
 @Controller('tickets')
@@ -22,6 +25,26 @@ export class TicketsController {
     private readonly bookingProvider: BookingProvider,
     private readonly qrCodeService: QrCodeService,
   ) {}
+
+  @Post('validate')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(
+    UserRole.GATE_CHECKER,
+    UserRole.STAFF,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    'gate_checker' as any,
+    'staff' as any,
+    'admin' as any,
+    'super_admin' as any,
+  )
+  @HttpCode(HttpStatus.OK)
+  async validateTicket(
+    @Body() dto: ValidateTicketDto,
+    @CurrentUser() user: any,
+  ) {
+    return await this.bookingProvider.validateTicket(dto, user);
+  }
 
   @Get(':id/qr-code')
   @UseGuards(JwtAuthGuard)

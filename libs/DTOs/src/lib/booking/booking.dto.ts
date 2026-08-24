@@ -62,3 +62,20 @@ export class GetUserBookingsQueryDto {
   @Max(50)
   limit: number = 10;
 }
+
+export class ValidateTicketDto {
+  @Transform(({ obj }) => obj.qr_token ?? obj.qrToken)
+  @IsString()
+  @IsNotEmpty()
+  qrToken!: string;
+
+  @Transform(({ obj }) => obj.gate_cinema_id ?? obj.gateCinemaId)
+  @IsOptional()
+  @IsUUID('4')
+  gateCinemaId?: string;
+
+  @Transform(({ obj }) => obj.gate_auditorium_id ?? obj.gateAuditoriumId)
+  @IsOptional()
+  @IsUUID('4')
+  gateAuditoriumId?: string;
+}

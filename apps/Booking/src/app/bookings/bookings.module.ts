@@ -17,6 +17,7 @@ import {
   ConfirmBookingProvider,
   CancelBookingProvider,
   GetBookingProvider,
+  ValidateTicketProvider,
 } from './providers';
 import { BookingExpirationService } from './services/booking-expiration.service';
 
@@ -59,6 +60,7 @@ import { BookingExpirationService } from './services/booking-expiration.service'
     ConfirmBookingProvider,
     CancelBookingProvider,
     GetBookingProvider,
+    ValidateTicketProvider,
     BookingExpirationService,
   ],
   exports: [
@@ -67,6 +69,7 @@ import { BookingExpirationService } from './services/booking-expiration.service'
     ConfirmBookingProvider,
     CancelBookingProvider,
     GetBookingProvider,
+    ValidateTicketProvider,
     BookingExpirationService,
   ],
 })

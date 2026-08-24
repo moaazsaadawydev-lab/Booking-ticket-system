@@ -4,6 +4,8 @@ export enum UserRole {
   ACCOUNTANT = 'accountant',
   MARKETING = 'marketing',
   CINEMA_ADMIN = 'cinema_admin',
+  GATE_CHECKER = 'gate_checker',
+  STAFF = 'staff',
   USER = 'user',
 }
 
@@ -155,4 +157,3 @@ export enum PaymentStatus {
 export enum PaymentProvider {
   PAYMOB = 'PAYMOB',
 }
-

@@ -12,6 +12,7 @@ import {
   ConfirmBookingProvider,
   CancelBookingProvider,
   GetBookingProvider,
+  ValidateTicketProvider,
 } from './providers';
 import type {
   CancelBookingRequest,
@@ -30,6 +31,7 @@ export class BookingsController {
     private readonly confirmBookingProvider: ConfirmBookingProvider,
     private readonly cancelBookingProvider: CancelBookingProvider,
     private readonly getBookingProvider: GetBookingProvider,
+    private readonly validateTicketProvider: ValidateTicketProvider,
   ) {}
 
   // -------------------------------------------------------------
@@ -100,6 +102,29 @@ export class BookingsController {
     );
   }
 
+  @GrpcMethod('BookingService', 'ValidateTicket')
+  async validateTicket(data: {
+    qr_token?: string;
+    qrToken?: string;
+    gate_cinema_id?: string;
+    gateCinemaId?: string;
+    gate_auditorium_id?: string;
+    gateAuditoriumId?: string;
+    scanned_by_user_id?: string;
+    scannedByUserId?: string;
+    scanned_by_user_email?: string;
+    scannedByUserEmail?: string;
+  }) {
+    return await this.validateTicketProvider.execute({
+      qrToken: data.qrToken || data.qr_token || '',
+      gateCinemaId: data.gateCinemaId || data.gate_cinema_id,
+      gateAuditoriumId: data.gateAuditoriumId || data.gate_auditorium_id,
+      scannedByUserId: data.scannedByUserId || data.scanned_by_user_id || '',
+      scannedByUserEmail:
+        data.scannedByUserEmail || data.scanned_by_user_email || '',
+    });
+  }
+
   // -------------------------------------------------------------
   // RabbitMQ Event Consumers
   // -------------------------------------------------------------
@@ -149,7 +174,6 @@ export class BookingsController {
       this.logger.error(
         `Failed to confirm booking ${data.bookingId} from payment event: ${err.message}`,
       );
-      // If the booking is already confirmed, acknowledge to prevent redelivery loop
       if (err?.message?.includes('already') || err?.code === 'ALREADY_EXISTS') {
         channel.ack(originalMsg);
         return;
@@ -183,7 +207,7 @@ export class BookingsController {
         data.bookingId,
         data.userId,
         data.reason || data.failureReason || 'Payment failed or declined',
-        true, // admin override to allow system cancellation
+        true,
       );
       this.logger.log(
         `✅ Booking ${data.bookingId} cancelled and seat holds released via RabbitMQ event`,

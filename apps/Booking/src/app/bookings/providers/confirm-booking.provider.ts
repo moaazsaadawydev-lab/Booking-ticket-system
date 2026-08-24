@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import * as crypto from 'crypto';
+import * as jwt from 'jsonwebtoken';
 import { Booking, Ticket, BookingOutbox } from '@booking-ticket-system/Entities';
 import { BookingStatus, TicketStatus, OutboxStatus } from '@booking-ticket-system/Utils';
 import { BookingOutboxEvent } from '@booking-ticket-system/Constants';
@@ -85,6 +86,11 @@ export class ConfirmBookingProvider {
       });
     }
 
+    const jwtSecret =
+      process.env['TICKET_JWT_SECRET'] ||
+      process.env['JWT_SECRET'] ||
+      'ticket-jwt-secret-key-12345';
+
     const confirmedBooking = await this.dataSource.transaction(
       async (manager) => {
         booking.status = BookingStatus.CONFIRMED;
@@ -94,11 +100,43 @@ export class ConfirmBookingProvider {
         const updatedBooking = await manager.save(Booking, booking);
 
         const currentYear = now.getFullYear();
+        const seatMap = new Map(
+          (booking.seats || []).map((s) => [s.seatId, s.seatIdentifier]),
+        );
+
+        // Fetch showtime info if available for dynamic expiration
+        let showtimeExp: number = Math.floor(Date.now() / 1000) + 7 * 86400; // default 7 days
+        if (extraDetails?.startTime) {
+          const start = new Date(extraDetails.startTime).getTime();
+          // Assume 2.5 hours + 30 min buffer if only start time known
+          showtimeExp = Math.floor((start + 3 * 3600 * 1000) / 1000);
+        }
+
         const ticketsToCreate = (booking.seats || []).map((seat) => {
-          const ticketNumber = `TKT-${currentYear}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-          const qrCodeToken = crypto.randomBytes(32).toString('hex');
+          const ticketId = crypto.randomUUID();
+          const ticketNumber = `TKT-${currentYear}-${crypto
+            .randomBytes(4)
+            .toString('hex')
+            .toUpperCase()}`;
+          const seatNumber =
+            seat.seatIdentifier || seatMap.get(seat.seatId) || 'Standard';
+
+          const tokenPayload = {
+            sub: ticketId,
+            bookingId: updatedBooking.id,
+            showtimeId: updatedBooking.showtimeId,
+            cinemaId: updatedBooking.cinemaId,
+            auditoriumId: updatedBooking.auditoriumId,
+            seatId: seat.seatId,
+            seatNumber,
+            type: 'TICKET_QR',
+            exp: showtimeExp,
+          };
+
+          const qrCodeToken = jwt.sign(tokenPayload, jwtSecret);
 
           return manager.create(Ticket, {
+            id: ticketId,
             bookingId: updatedBooking.id,
             seatId: seat.seatId,
             ticketNumber,
@@ -109,8 +147,13 @@ export class ConfirmBookingProvider {
 
         updatedBooking.tickets = await manager.save(Ticket, ticketsToCreate);
 
+        // Resolve customer details with fallback
+        let resolvedCustomerEmail =
+          extraDetails?.customerEmail || extraDetails?.email;
+        let resolvedCustomerName =
+          extraDetails?.customerName || extraDetails?.name;
+
         // Save transactional Outbox event
-        const seatMap = new Map((booking.seats || []).map((s) => [s.seatId, s.seatIdentifier]));
         const outboxEntity = manager.create(BookingOutbox, {
           eventType: BookingOutboxEvent.BOOKING_CONFIRMED,
           payload: {
@@ -121,8 +164,8 @@ export class ConfirmBookingProvider {
             totalAmount: updatedBooking.totalAmount,
             paymentId: updatedBooking.paymentId,
             confirmedAt: updatedBooking.confirmedAt?.toISOString(),
-            customerEmail: extraDetails?.customerEmail || extraDetails?.email,
-            customerName: extraDetails?.customerName || extraDetails?.name,
+            customerEmail: resolvedCustomerEmail,
+            customerName: resolvedCustomerName,
             movieTitle: extraDetails?.movieTitle,
             cinemaName: extraDetails?.cinemaName,
             auditoriumName: extraDetails?.auditoriumName,
@@ -145,7 +188,7 @@ export class ConfirmBookingProvider {
     );
 
     this.logger.log(
-      `Booking ${booking.bookingReference} confirmed successfully with ${confirmedBooking.tickets.length} tickets`,
+      `Booking ${booking.bookingReference} confirmed successfully with ${confirmedBooking.tickets.length} signed JWT tickets`,
     );
 
     return { booking: mapToBookingResponse(confirmedBooking) };

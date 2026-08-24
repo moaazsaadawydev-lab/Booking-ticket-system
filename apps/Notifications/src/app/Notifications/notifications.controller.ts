@@ -720,39 +720,66 @@ export class NotificationController {
   ) {
     const channel = context.getChannelRef();
     const originalMsg = context.getMessage();
-    const sourceEventId = data.sourceEventId || data.eventId;
+
+    const bookingReference =
+      data.bookingReference ||
+      (data as any).booking_reference ||
+      data.bookingId ||
+      'BK-CONFIRMED';
+    const sourceEventId =
+      data.sourceEventId ||
+      data.eventId ||
+      `booking_confirmed_${data.bookingId || bookingReference}`;
 
     this.logger.log(
-      `[NotificationsService] 🎟️ Received booking.confirmed for booking ${data.bookingReference} (Payment: ${data.paymentId})`,
+      `[NotificationsService] 🎟️ Received booking.confirmed for booking ${bookingReference} (Payment: ${data.paymentId || 'N/A'})`,
     );
 
     // Generate in-memory QR Code PNG buffers & Base64 Data URLs for each ticket
-    const tickets = data.tickets || [];
+    const rawTickets = data.tickets || [];
     const emailTickets: any[] = [];
 
-    for (const ticket of tickets) {
+    for (const ticket of rawTickets) {
+      const ticketId = (ticket as any).ticketId || ticket.id || '';
+      const ticketNumber =
+        ticket.ticketNumber || (ticket as any).ticket_number || 'TKT-000';
+      const seatNumber =
+        (ticket as any).seatNumber ||
+        (ticket as any).seat_number ||
+        ticket.seatIdentifier ||
+        'Standard Seat';
+      const qrCodeToken =
+        ticket.qrCodeToken ||
+        (ticket as any).qr_code_token ||
+        (ticket as any).qrToken ||
+        '';
+
       let qrDataUrl = '';
       let qrBase64 = '';
-      const qrCid = `qr_${ticket.ticketNumber.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      const qrCid = `qr_${ticketNumber.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
-      if (ticket.qrCodeToken) {
+      if (qrCodeToken) {
         try {
-          const qrBuffer = await this.qrCodeService.generateQrBuffer(ticket.qrCodeToken);
-          qrDataUrl = await this.qrCodeService.generateQrDataUrl(ticket.qrCodeToken);
+          const qrBuffer =
+            await this.qrCodeService.generateQrBuffer(qrCodeToken);
+          qrDataUrl =
+            await this.qrCodeService.generateQrDataUrl(qrCodeToken);
           qrBase64 = qrBuffer.toString('base64');
         } catch (qrErr: any) {
           this.logger.warn(
-            `Failed to generate in-memory QR for ticket ${ticket.ticketNumber}: ${qrErr.message}`,
+            `Failed to generate in-memory QR for ticket ${ticketNumber}: ${qrErr.message}`,
           );
         }
       }
 
       emailTickets.push({
-        id: ticket.id,
-        seatId: ticket.seatId,
-        seatIdentifier: ticket.seatIdentifier || 'Standard Seat',
-        ticketNumber: ticket.ticketNumber,
-        qrCodeToken: ticket.qrCodeToken,
+        id: ticketId,
+        ticketId,
+        seatId: ticket.seatId || '',
+        seatIdentifier: seatNumber,
+        seatNumber,
+        ticketNumber,
+        qrCodeToken,
         qrDataUrl,
         qrBase64,
         qrCid,
@@ -761,31 +788,71 @@ export class NotificationController {
 
     if (emailTickets.length > 0) {
       this.logger.log(
-        `[NotificationsService] ⚡ Generated ${emailTickets.length} in-memory QR code buffers for tickets of booking ${data.bookingReference}`,
+        `[NotificationsService] ⚡ Generated ${emailTickets.length} in-memory QR code buffers for tickets of booking ${bookingReference}`,
       );
     }
 
+    const currency = (data as any).currency || 'EGP';
+    const totalAmount = data.totalAmount || (data as any).total_amount || 0;
+
     const notificationDto: NotificationDto = {
-      UserId: data.userId,
-      title: 'Booking Confirmed!',
-      body: `Your booking ${data.bookingReference} has been confirmed. Total Paid: ${data.totalAmount} EGP. ${tickets.length} tickets have been issued with QR codes.`,
+      UserId: data.userId || (data as any).user_id,
+      title: `🎬 Booking Confirmed! (${bookingReference})`,
+      body: `Your booking ${bookingReference} has been confirmed. Total Paid: ${totalAmount} ${currency}. ${emailTickets.length} tickets have been issued with QR codes.`,
       type: NotificationType.ALERT_MESSAGE,
     };
 
-    const recipientEmail = data.customerEmail || data.email || null;
+    const recipientEmail =
+      data.customerEmail ||
+      data.email ||
+      (data as any).customer_email ||
+      null;
+
+    const startTime =
+      data.startTime ||
+      (data as any).start_time ||
+      (data as any).showtimeStart ||
+      (data as any).showtime_start;
+
+    const endTime =
+      (data as any).endTime ||
+      (data as any).end_time ||
+      (data as any).showtimeEnd ||
+      (data as any).showtime_end;
+
+    let showtimeFormatted = data.showtimeFormatted;
+    if (!showtimeFormatted && startTime) {
+      const startStr = new Date(startTime).toLocaleString('en-US', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      });
+      const endStr = endTime
+        ? new Date(endTime).toLocaleTimeString('en-US', { timeStyle: 'short' })
+        : null;
+      showtimeFormatted = endStr ? `${startStr} - ${endStr}` : startStr;
+    }
+
     const emailContext = {
-      customerName: data.customerName || data.name || 'Valued Customer',
-      bookingReference: data.bookingReference,
-      paymentId: data.paymentId || 'N/A',
-      totalAmount: data.totalAmount,
-      movieTitle: data.movieTitle || 'Special Feature Movie',
-      cinemaName: data.cinemaName || 'Aflamak Cinema',
-      auditoriumName: data.auditoriumName || 'VIP Hall 1',
-      showtimeFormatted:
-        data.showtimeFormatted ||
-        (data.startTime
-          ? new Date(data.startTime).toLocaleString('en-US')
-          : 'Reserved Showtime'),
+      customerName:
+        data.customerName ||
+        data.name ||
+        (data as any).customer_name ||
+        'Valued Customer',
+      bookingReference,
+      paymentId: data.paymentId || (data as any).payment_id || 'N/A',
+      totalAmount,
+      currency,
+      movieTitle:
+        data.movieTitle ||
+        (data as any).movie_title ||
+        'Special Feature Movie',
+      cinemaName:
+        data.cinemaName || (data as any).cinema_name || 'Aflamak Cinema',
+      auditoriumName:
+        data.auditoriumName ||
+        (data as any).auditorium_name ||
+        'Auditorium Hall',
+      showtimeFormatted: showtimeFormatted || 'Reserved Showtime',
       confirmedAtFormatted: data.confirmedAt
         ? new Date(data.confirmedAt).toLocaleString('en-US')
         : new Date().toLocaleString('en-US'),

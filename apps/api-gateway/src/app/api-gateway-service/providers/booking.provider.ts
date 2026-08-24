@@ -7,6 +7,7 @@ import {
   ConfirmBookingDto,
   GetUserBookingsQueryDto,
   HoldSeatsDto,
+  ValidateTicketDto,
 } from '@booking-ticket-system/DTOs';
 
 @Injectable()
@@ -100,6 +101,24 @@ export class BookingProvider implements OnModuleInit {
         userId,
         is_admin: isAdmin,
         isAdmin,
+      }),
+    );
+    return res;
+  }
+
+  async validateTicket(dto: ValidateTicketDto, user: any) {
+    const res: any = await lastValueFrom(
+      this.bookingService.ValidateTicket({
+        qr_token: dto.qrToken,
+        qrToken: dto.qrToken,
+        gate_cinema_id: dto.gateCinemaId,
+        gateCinemaId: dto.gateCinemaId,
+        gate_auditorium_id: dto.gateAuditoriumId,
+        gateAuditoriumId: dto.gateAuditoriumId,
+        scanned_by_user_id: user?.id,
+        scannedByUserId: user?.id,
+        scanned_by_user_email: user?.email,
+        scannedByUserEmail: user?.email,
       }),
     );
     return res;

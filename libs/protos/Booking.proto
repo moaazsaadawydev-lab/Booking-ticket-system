@@ -9,6 +9,7 @@ service BookingService {
   rpc GetBookingById (GetBookingByIdRequest) returns (BookingResponse);
   rpc GetUserBookings (GetUserBookingsRequest) returns (GetUserBookingsResponse);
   rpc GetTicketById (GetTicketByIdRequest) returns (GetTicketByIdResponse);
+  rpc ValidateTicket (ValidateTicketRequest) returns (ValidateTicketResponse);
 }
 
 // --- Request / Response Messages ---
@@ -33,6 +34,7 @@ message TicketItem {
   string qr_code_token = 4;
   string status = 5;
   optional string used_at = 6;
+  optional string scanned_by_user_id = 7;
 }
 
 message BookingResponse {
@@ -106,4 +108,25 @@ message GetTicketByIdRequest {
 message GetTicketByIdResponse {
   TicketItem ticket = 1;
   BookingResponse booking = 2;
+}
+
+message ValidateTicketRequest {
+  string qr_token = 1;
+  optional string gate_cinema_id = 2;
+  optional string gate_auditorium_id = 3;
+  string scanned_by_user_id = 4;
+  string scanned_by_user_email = 5;
+}
+
+message ValidateTicketResponse {
+  bool valid = 1;
+  string ticket_number = 2;
+  string status = 3;
+  string movie_title = 4;
+  string cinema_name = 5;
+  string auditorium_name = 6;
+  string seat_number = 7;
+  string showtime_start = 8;
+  string scanned_at = 9;
+  string scanned_by = 10;
 }

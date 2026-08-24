@@ -32,12 +32,9 @@ export class Ticket {
   })
   ticketNumber!: string;
 
-  @Index({ unique: true })
   @Column({
     name: 'qr_code_token',
-    type: 'varchar',
-    length: 255,
-    unique: true,
+    type: 'text',
     nullable: false,
   })
   qrCodeToken!: string;
@@ -58,6 +55,14 @@ export class Ticket {
     default: null,
   })
   usedAt!: Date | null;
+
+  @Column({
+    name: 'scanned_by_user_id',
+    type: 'uuid',
+    nullable: true,
+    default: null,
+  })
+  scannedByUserId!: string | null;
 
   @CreateDateColumn({
     name: 'created_at',
