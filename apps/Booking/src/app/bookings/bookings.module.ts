@@ -37,11 +37,12 @@ import {
             package: 'catalog',
             protoPath: join(process.cwd(), 'libs/protos/Catalog.proto'),
             url:
-              process.env.NODE_ENV === 'docker-development'
+              (process.env.NODE_ENV === 'docker-development'
                 ? config.get<string>('CATALOG_GRPC_DEV_DOC_URL')
-                : process.env.NODE_ENV === 'development'
-                  ? config.get<string>('CATALOG_GRPC_DEV_URL')
-                  : config.get<string>('CATALOG_GRPC_DEV_DOC_URL'),
+                : config.get<string>('CATALOG_GRPC_DEV_URL')) ||
+              (process.env.NODE_ENV === 'docker-development'
+                ? 'catalog-service:50052'
+                : 'localhost:50052'),
             loader: {
               keepCase: true,
             },

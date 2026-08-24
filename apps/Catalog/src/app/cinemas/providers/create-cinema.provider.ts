@@ -30,7 +30,8 @@ export class CreateCinemaProvider {
 
     const cinemaId = randomUUID();
     const description = dto.description ?? (dto as any).description ?? null;
-    const country = dto.country ?? (dto as any).country ?? 'EG';
+    const rawCountry = dto.country ?? (dto as any).country ?? 'EG';
+    const country = rawCountry.toLowerCase() === 'egypt' ? 'EG' : rawCountry.slice(0, 2).toUpperCase();
     const rawThumbnailUrl = dto.thumbnailUrl ?? (dto as any).thumbnail_url ?? null;
     const rawGalleryUrls: string[] = dto.galleryUrls ?? (dto as any).gallery_urls ?? [];
     const phoneNumber = dto.phoneNumber ?? (dto as any).phone_number ?? null;

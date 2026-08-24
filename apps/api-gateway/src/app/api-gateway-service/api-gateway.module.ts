@@ -97,11 +97,12 @@ import {
             package: 'booking',
             protoPath: join(process.cwd(), 'libs/protos/Booking.proto'),
             url:
-              process.env.NODE_ENV === 'docker-development'
+              (process.env.NODE_ENV === 'docker-development'
                 ? config.get<string>('BOOKING_GRPC_DEV_DOC_URL')
-                : process.env.NODE_ENV === 'development'
-                  ? config.get<string>('BOOKING_GRPC_DEV_URL')
-                  : config.get<string>('BOOKING_GRPC_DEV_DOC_URL'),
+                : config.get<string>('BOOKING_GRPC_DEV_URL')) ||
+              (process.env.NODE_ENV === 'docker-development'
+                ? 'booking-service:50053'
+                : 'localhost:50053'),
             loader: {
               keepCase: true,
             },
