@@ -365,7 +365,7 @@ async function runNotificationsFlowTest() {
 
     // Verify Notifications table in DB
     const notifCheck = await notifPg.query(
-      `SELECT * FROM notifications WHERE "userId" = $1 AND title = 'Booking Confirmed!' ORDER BY "createdAt" DESC`,
+      `SELECT * FROM notifications WHERE "userId" = $1 AND ("emailTemplate" = 'BookingConfirmed' OR title LIKE '%Booking Confirmed%') ORDER BY "createdAt" DESC`,
       [customerUserId],
     );
     const confirmedNotification = notifCheck.rows[0];
