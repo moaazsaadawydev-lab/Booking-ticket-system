@@ -16,7 +16,7 @@ services:
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres']
       interval: 5s
-      timeout: 5s
+      timeout: 5s  
       retries: 5
 
   rabbitmq:
@@ -144,6 +144,25 @@ services:
     networks:
       - booking-network
 
+  booking-service:
+    build:
+      context: .
+      dockerfile: apps/Booking/Dockerfile
+    container_name: booking-service
+    env_file:
+      - libs/env/.env.docker-development
+    environment:
+      - NODE_ENV=docker-development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - booking-network
+
   api-gateway:
     build:
       context: .
@@ -163,6 +182,8 @@ services:
       media-service:
         condition: service_started
       catalog-service:
+        condition: service_started
+      booking-service:
         condition: service_started
       rabbitmq:
         condition: service_healthy

@@ -10,3 +10,7 @@ export * from './lib/auditorium.entity';
 export * from './lib/seat.entity';
 export * from './lib/showtime.entity';
 export * from './lib/showtime-seat-pricing.entity';
+export * from './lib/booking.entity';
+export * from './lib/booking-seat.entity';
+export * from './lib/ticket.entity';
+export * from './lib/booking-outbox.entity';

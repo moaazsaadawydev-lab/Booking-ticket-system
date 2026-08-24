@@ -125,3 +125,17 @@ export enum ShowtimeStatus {
   COMPLETED = 'COMPLETED',
 }
 
+export enum BookingStatus {
+  PENDING_PAYMENT = 'PENDING_PAYMENT',
+  CONFIRMED = 'CONFIRMED',
+  CANCELLED = 'CANCELLED',
+  EXPIRED = 'EXPIRED',
+  REFUNDED = 'REFUNDED',
+}
+
+export enum TicketStatus {
+  ISSUED = 'ISSUED',
+  USED = 'USED',
+  CANCELLED = 'CANCELLED',
+}
+
