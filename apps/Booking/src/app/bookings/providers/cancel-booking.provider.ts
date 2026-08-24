@@ -4,12 +4,16 @@ import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import { Booking, Ticket } from '@booking-ticket-system/Entities';
 import { BookingStatus, TicketStatus } from '@booking-ticket-system/Utils';
+import { SeatLockProvider } from './seat-lock.provider';
 
 @Injectable()
 export class CancelBookingProvider {
   private readonly logger = new Logger(CancelBookingProvider.name);
 
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly seatLockProvider: SeatLockProvider,
+  ) {}
 
   async execute(
     bookingId: string,
@@ -28,7 +32,10 @@ export class CancelBookingProvider {
 
     const booking = await bookingRepo.findOne({
       where: { id: bookingId },
-      relations: { tickets: true },
+      relations: {
+        seats: true,
+        tickets: true,
+      },
     });
 
     if (!booking) {
@@ -64,6 +71,12 @@ export class CancelBookingProvider {
         await manager.save(Ticket, booking.tickets);
       }
     });
+
+    // Release Redis distributed locks for freed seats
+    const seatIds = (booking.seats || []).map((s) => s.seatId);
+    if (seatIds.length > 0) {
+      await this.seatLockProvider.releaseLock(booking.showtimeId, seatIds);
+    }
 
     this.logger.log(
       `Booking ${booking.bookingReference} has been cancelled.${reason ? ` Reason: ${reason}` : ''}`,

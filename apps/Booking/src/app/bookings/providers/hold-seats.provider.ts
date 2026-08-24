@@ -156,51 +156,71 @@ export class HoldSeatsProvider implements OnModuleInit {
       });
     }
 
-    // 3. Database transaction: Check active seat overlap and persist hold
+    // 3. Redis Distributed Lock: Atomic all-or-nothing seat locking via Lua script
     const holdDurationSeconds = 600; // 10 minutes
+    await this.seatLockProvider.acquireLock(
+      showtimeId,
+      seatIds,
+      userId,
+      holdDurationSeconds,
+    );
+
+    // 4. PostgreSQL Transaction: Dual-layer DB conflict check and persist hold
+    let savedBooking: Booking;
     const holdExpiresAt = new Date(Date.now() + holdDurationSeconds * 1000);
     const bookingReference = 'BK-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
-    const savedBooking = await this.dataSource.transaction(async (manager) => {
-      // Locking & Conflict Check
-      await this.seatLockProvider.checkAndLockSeats(
-        showtimeId,
-        seatIds,
-        manager,
-      );
+    try {
+      savedBooking = await this.dataSource.transaction(async (manager) => {
+        // Dual-layer conflict check against DB
+        await this.seatLockProvider.checkDatabaseOverlap(
+          showtimeId,
+          seatIds,
+          manager,
+        );
 
-      const bookingEntity = manager.create(Booking, {
-        bookingReference,
-        userId,
-        showtimeId,
-        cinemaId,
-        auditoriumId,
-        totalAmount,
-        currency: 'EGP',
-        status: BookingStatus.PENDING_PAYMENT,
-        holdExpiresAt,
+        const bookingEntity = manager.create(Booking, {
+          bookingReference,
+          userId,
+          showtimeId,
+          cinemaId,
+          auditoriumId,
+          totalAmount,
+          currency: 'EGP',
+          status: BookingStatus.PENDING_PAYMENT,
+          holdExpiresAt,
+        });
+
+        const persistedBooking = await manager.save(Booking, bookingEntity);
+
+        const bookingSeatsEntities = resolvedSeats.map((rs) =>
+          manager.create(BookingSeat, {
+            bookingId: persistedBooking.id,
+            seatId: rs.seatId,
+            seatIdentifier: rs.seatIdentifier,
+            seatType: rs.seatType,
+            unitPrice: rs.unitPrice,
+          }),
+        );
+
+        persistedBooking.seats = await manager.save(
+          BookingSeat,
+          bookingSeatsEntities,
+        );
+        persistedBooking.tickets = [];
+
+        return persistedBooking;
       });
-
-      const persistedBooking = await manager.save(Booking, bookingEntity);
-
-      const bookingSeatsEntities = resolvedSeats.map((rs) =>
-        manager.create(BookingSeat, {
-          bookingId: persistedBooking.id,
-          seatId: rs.seatId,
-          seatIdentifier: rs.seatIdentifier,
-          seatType: rs.seatType,
-          unitPrice: rs.unitPrice,
-        }),
+    } catch (dbError: any) {
+      // Rollback safety: Release Redis distributed locks if DB transaction fails
+      this.logger.warn(
+        `DB transaction failed for user ${userId} on showtime ${showtimeId}, releasing Redis locks: ${dbError.message}`,
       );
-
-      persistedBooking.seats = await manager.save(
-        BookingSeat,
-        bookingSeatsEntities,
-      );
-      persistedBooking.tickets = [];
-
-      return persistedBooking;
-    });
+      await this.seatLockProvider.releaseLock(showtimeId, seatIds).catch((err) => {
+        this.logger.error(`Failed to release Redis locks during rollback: ${err.message}`);
+      });
+      throw dbError;
+    }
 
     return {
       booking: mapToBookingResponse(savedBooking),

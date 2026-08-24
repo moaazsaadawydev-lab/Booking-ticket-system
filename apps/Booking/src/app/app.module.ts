@@ -10,10 +10,12 @@ import {
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
+import { RedisModule } from '@booking-ticket-system/Redis';
 import { BookingsModule } from './bookings/bookings.module';
 
 @Module({
   imports: [
+    RedisModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: `libs/env/.env.${process.env['NODE_ENV'] || 'development'}`,

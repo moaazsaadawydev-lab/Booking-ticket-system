@@ -42,3 +42,4 @@ function truncateTables(dbName, excludedTables = []) {
 truncateTables('Booking-Catalog', ['genres']);
 truncateTables('Booking-Users');
 truncateTables('Booking-Notification');
+truncateTables('Booking-Bookings');
