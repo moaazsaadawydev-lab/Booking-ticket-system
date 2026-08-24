@@ -153,6 +153,8 @@ services:
       - libs/env/.env.docker-development
     environment:
       - NODE_ENV=docker-development
+    ports:
+      - '50053:50053'
     depends_on:
       postgres:
         condition: service_healthy

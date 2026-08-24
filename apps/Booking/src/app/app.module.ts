@@ -10,6 +10,8 @@ import {
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
+import { BookingsModule } from './bookings/bookings.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -43,6 +45,7 @@ import { AppService } from './app.service';
       Ticket,
       BookingOutbox,
     ]),
+    BookingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

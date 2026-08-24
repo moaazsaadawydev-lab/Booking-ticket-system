@@ -13,7 +13,7 @@ import { RedisModule } from '@booking-ticket-system/Redis';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { StorageModule } from '@booking-ticket-system/Storage';
 import { PassportModule } from '@nestjs/passport';
-import { CATALOG_SERVICE } from '@booking-ticket-system/Constants';
+import { CATALOG_SERVICE, BOOKING_SERVICE } from '@booking-ticket-system/Constants';
 import {
   UsersAuthController,
   UsersRegistrationController,
@@ -28,12 +28,14 @@ import {
   CatalogShowtimesController,
 } from './Controllers/Catalog';
 import { MediaController } from './Controllers/Media';
+import { BookingsController } from './Controllers/Booking';
 import {
   AuthProvider,
   RegistrationProvider,
   UserProfileProvider,
   GoogleStrategy,
   CatalogProvider,
+  BookingProvider,
 } from './providers';
 
 @Module({
@@ -86,6 +88,26 @@ import {
           },
         }),
       },
+      {
+        name: BOOKING_SERVICE,
+        inject: [ConfigService],
+        useFactory: (config: ConfigService) => ({
+          transport: Transport.GRPC,
+          options: {
+            package: 'booking',
+            protoPath: join(process.cwd(), 'libs/protos/Booking.proto'),
+            url:
+              process.env.NODE_ENV === 'docker-development'
+                ? config.get<string>('BOOKING_GRPC_DEV_DOC_URL')
+                : process.env.NODE_ENV === 'development'
+                  ? config.get<string>('BOOKING_GRPC_DEV_URL')
+                  : config.get<string>('BOOKING_GRPC_DEV_DOC_URL'),
+            loader: {
+              keepCase: true,
+            },
+          },
+        }),
+      },
     ]),
     JwtModule.registerAsync({
       inject: [ConfigService],
@@ -107,6 +129,7 @@ import {
     CatalogCinemasController,
     CatalogSeatsController,
     CatalogShowtimesController,
+    BookingsController,
     MediaController,
   ],
   providers: [
@@ -120,6 +143,8 @@ import {
     UserProfileProvider,
     GoogleStrategy,
     CatalogProvider,
+    BookingProvider,
   ],
 })
 export class ApiGatewayModule {}
+

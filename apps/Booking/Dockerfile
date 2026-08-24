@@ -12,5 +12,5 @@ COPY --from=builder /app/dist/apps/Booking ./dist/apps/Booking
 COPY libs/protos ./libs/protos
 
 ENV NODE_ENV=docker-development
-EXPOSE 3003
+EXPOSE 50053 3003
 CMD ["node", "dist/apps/Booking/main.js"]
