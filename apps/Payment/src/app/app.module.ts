@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { RedisModule } from '@booking-ticket-system/Redis';
 import {
   Payment,
   PaymentLog,
@@ -8,10 +9,17 @@ import {
 } from '@booking-ticket-system/Entities';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { PaymobProvider } from './providers';
+import { PaymentsController } from './payments.controller';
+import {
+  PaymobProvider,
+  InitiatePaymentProvider,
+  ProcessWebhookProvider,
+  GetPaymentProvider,
+} from './providers';
 
 @Module({
   imports: [
+    RedisModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: `libs/env/.env.${process.env['NODE_ENV'] || 'development'}`,
@@ -34,8 +42,20 @@ import { PaymobProvider } from './providers';
     }),
     TypeOrmModule.forFeature([Payment, PaymentLog, PaymentOutbox]),
   ],
-  controllers: [AppController],
-  providers: [AppService, PaymobProvider],
-  exports: [PaymobProvider, TypeOrmModule],
+  controllers: [AppController, PaymentsController],
+  providers: [
+    AppService,
+    PaymobProvider,
+    InitiatePaymentProvider,
+    ProcessWebhookProvider,
+    GetPaymentProvider,
+  ],
+  exports: [
+    PaymobProvider,
+    InitiatePaymentProvider,
+    ProcessWebhookProvider,
+    GetPaymentProvider,
+    TypeOrmModule,
+  ],
 })
 export class AppModule {}

@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package payment;
+
+service PaymentService {
+  rpc InitiatePayment (InitiatePaymentRequest) returns (InitiatePaymentResponse);
+  rpc ProcessWebhook (ProcessWebhookRequest) returns (ProcessWebhookResponse);
+  rpc GetPaymentById (GetPaymentByIdRequest) returns (GetPaymentByIdResponse);
+  rpc GetPaymentByBookingId (GetPaymentByBookingIdRequest) returns (GetPaymentByBookingIdResponse);
+}
+
+message BillingData {
+  string first_name = 1;
+  string last_name = 2;
+  string email = 3;
+  optional string phone_number = 4;
+  optional string apartment = 5;
+  optional string floor = 6;
+  optional string street = 7;
+  optional string building = 8;
+  optional string shipping_method = 9;
+  optional string postal_code = 10;
+  optional string city = 11;
+  optional string country = 12;
+  optional string state = 13;
+}
+
+message InitiatePaymentRequest {
+  string booking_id = 1;
+  string user_id = 2;
+  double amount = 3;
+  string currency = 4;
+  string method = 5; // "CARD" or "WALLET"
+  optional BillingData billing_data = 6;
+}
+
+message InitiatePaymentResponse {
+  string payment_id = 1;
+  string booking_id = 2;
+  string status = 3;
+  string payment_token = 4;
+  optional string iframe_url = 5;
+  optional string provider_order_id = 6;
+  double amount = 7;
+  string currency = 8;
+}
+
+message ProcessWebhookRequest {
+  string raw_payload_json = 1;
+  string hmac_signature = 2;
+}
+
+message ProcessWebhookResponse {
+  bool success = 1;
+  string message = 2;
+  optional string payment_id = 3;
+  optional string booking_id = 4;
+  optional string status = 5;
+  optional string transaction_id = 6;
+}
+
+message PaymentEntity {
+  string id = 1;
+  string booking_id = 2;
+  string user_id = 3;
+  double amount = 4;
+  string currency = 5;
+  string provider = 6;
+  string method = 7;
+  string status = 8;
+  optional string provider_order_id = 9;
+  optional string provider_transaction_id = 10;
+  optional string payment_token = 11;
+  optional string failure_reason = 12;
+  string created_at = 13;
+  string updated_at = 14;
+}
+
+message GetPaymentByIdRequest {
+  string payment_id = 1;
+  optional string user_id = 2;
+  optional bool is_admin = 3;
+}
+
+message GetPaymentByIdResponse {
+  PaymentEntity payment = 1;
+}
+
+message GetPaymentByBookingIdRequest {
+  string booking_id = 1;
+  optional string user_id = 2;
+  optional bool is_admin = 3;
+}
+
+message GetPaymentByBookingIdResponse {
+  PaymentEntity payment = 1;
+}

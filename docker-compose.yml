@@ -165,6 +165,27 @@ services:
     networks:
       - booking-network
 
+  payment-service:
+    build:
+      context: .
+      dockerfile: apps/Payment/Dockerfile
+    container_name: payment-service
+    env_file:
+      - libs/env/.env.docker-development
+    environment:
+      - NODE_ENV=docker-development
+    ports:
+      - '50054:50054'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - booking-network
+
   api-gateway:
     build:
       context: .
@@ -186,6 +207,8 @@ services:
       catalog-service:
         condition: service_started
       booking-service:
+        condition: service_started
+      payment-service:
         condition: service_started
       rabbitmq:
         condition: service_healthy

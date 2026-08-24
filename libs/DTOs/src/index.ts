@@ -21,4 +21,6 @@ export * from './lib/catalog/seat.dto';
 export * from './lib/catalog/showtime.dto';
 export * from './lib/catalog/validators/is-url-or-temp-key.decorator';
 export * from './lib/booking/booking.dto';
+export * from './lib/payment/payment.dto';
+
 

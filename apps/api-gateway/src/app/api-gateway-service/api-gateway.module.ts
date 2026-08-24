@@ -13,7 +13,7 @@ import { RedisModule } from '@booking-ticket-system/Redis';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { StorageModule } from '@booking-ticket-system/Storage';
 import { PassportModule } from '@nestjs/passport';
-import { CATALOG_SERVICE, BOOKING_SERVICE } from '@booking-ticket-system/Constants';
+import { CATALOG_SERVICE, BOOKING_SERVICE, PAYMENT_SERVICE } from '@booking-ticket-system/Constants';
 import {
   UsersAuthController,
   UsersRegistrationController,
@@ -29,6 +29,7 @@ import {
 } from './Controllers/Catalog';
 import { MediaController } from './Controllers/Media';
 import { BookingsController, TicketsController } from './Controllers/Booking';
+import { PaymentsController } from './Controllers/Payment';
 import {
   AuthProvider,
   RegistrationProvider,
@@ -36,6 +37,7 @@ import {
   GoogleStrategy,
   CatalogProvider,
   BookingProvider,
+  PaymentProvider,
 } from './providers';
 import { QrCodeService } from '@booking-ticket-system/Common';
 
@@ -58,11 +60,12 @@ import { QrCodeService } from '@booking-ticket-system/Common';
             package: 'user',
             protoPath: join(process.cwd(), 'libs/protos/Users.proto'),
             url:
-              process.env.NODE_ENV === 'docker-development'
+              (process.env.NODE_ENV === 'docker-development'
                 ? config.get<string>('USERS_GRPC_DEV_DOC_URL')
-                : process.env.NODE_ENV === 'development'
-                  ? config.get<string>('USERS_GRPC_DEV_URL')
-                  : config.get<string>('USERS_GRPC_DEV_DOC_URL'),
+                : config.get<string>('USERS_GRPC_DEV_URL')) ||
+              (process.env.NODE_ENV === 'docker-development'
+                ? 'users-service:50051'
+                : 'localhost:50051'),
             loader: {
               keepCase: true,
             },
@@ -78,11 +81,12 @@ import { QrCodeService } from '@booking-ticket-system/Common';
             package: 'catalog',
             protoPath: join(process.cwd(), 'libs/protos/Catalog.proto'),
             url:
-              process.env.NODE_ENV === 'docker-development'
+              (process.env.NODE_ENV === 'docker-development'
                 ? config.get<string>('CATALOG_GRPC_DEV_DOC_URL')
-                : process.env.NODE_ENV === 'development'
-                  ? config.get<string>('CATALOG_GRPC_DEV_URL')
-                  : config.get<string>('CATALOG_GRPC_DEV_DOC_URL'),
+                : config.get<string>('CATALOG_GRPC_DEV_URL')) ||
+              (process.env.NODE_ENV === 'docker-development'
+                ? 'catalog-service:50052'
+                : 'localhost:50052'),
             loader: {
               keepCase: true,
             },
@@ -104,6 +108,27 @@ import { QrCodeService } from '@booking-ticket-system/Common';
               (process.env.NODE_ENV === 'docker-development'
                 ? 'booking-service:50053'
                 : 'localhost:50053'),
+            loader: {
+              keepCase: true,
+            },
+          },
+        }),
+      },
+      {
+        name: PAYMENT_SERVICE,
+        inject: [ConfigService],
+        useFactory: (config: ConfigService) => ({
+          transport: Transport.GRPC,
+          options: {
+            package: 'payment',
+            protoPath: join(process.cwd(), 'libs/protos/Payment.proto'),
+            url:
+              (process.env.NODE_ENV === 'docker-development'
+                ? config.get<string>('PAYMENT_GRPC_DEV_DOC_URL')
+                : config.get<string>('PAYMENT_GRPC_DEV_URL')) ||
+              (process.env.NODE_ENV === 'docker-development'
+                ? 'payment-service:50054'
+                : 'localhost:50054'),
             loader: {
               keepCase: true,
             },
@@ -133,6 +158,7 @@ import { QrCodeService } from '@booking-ticket-system/Common';
     CatalogShowtimesController,
     BookingsController,
     TicketsController,
+    PaymentsController,
     MediaController,
   ],
   providers: [
@@ -147,8 +173,8 @@ import { QrCodeService } from '@booking-ticket-system/Common';
     GoogleStrategy,
     CatalogProvider,
     BookingProvider,
+    PaymentProvider,
     QrCodeService,
   ],
 })
 export class ApiGatewayModule {}
-

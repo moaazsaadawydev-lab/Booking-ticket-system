@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import * as CryptoJS from 'crypto-js';
+import { RedisService } from '@booking-ticket-system/Redis';
 
 export interface PaymobBillingData {
   first_name: string;
@@ -35,6 +36,9 @@ export interface PaymobPaymentKeyParams {
   expirationSeconds?: number;
 }
 
+export const PAYMOB_AUTH_TOKEN_REDIS_KEY = 'paymob:auth_token';
+export const PAYMOB_AUTH_TOKEN_TTL_SECONDS = 3000; // 50 minutes (Paymob JWT lasts 1 hour)
+
 @Injectable()
 export class PaymobProvider {
   private readonly logger = new Logger(PaymobProvider.name);
@@ -47,7 +51,10 @@ export class PaymobProvider {
   private readonly walletIntegrationId: number;
   private readonly iframeId: number;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
+  ) {
     this.apiKey = this.configService.get<string>('PAYMOB_API_KEY') || '';
     this.hmacSecret = this.configService.get<string>('PAYMOB_HMAC_SECRET') || '';
     this.cardIntegrationId = Number(
@@ -82,12 +89,50 @@ export class PaymobProvider {
   }
 
   /**
-   * Step 1: Authentication Token
-   * Calls POST https://accept.paymob.com/api/auth/tokens with api_key
+   * Acquire a distributed lock for a webhook transaction to avoid racing concurrent callbacks.
+   * Lock key: payment:lock:webhook:<transactionId>, TTL: 30 seconds
+   */
+  async acquireWebhookLock(transactionId: string): Promise<boolean> {
+    try {
+      const client = this.redisService.getClient();
+      const lockKey = `payment:lock:webhook:${transactionId}`;
+      const result = await client.set(lockKey, 'LOCKED', 'EX', 30, 'NX');
+      return result === 'OK';
+    } catch (err: any) {
+      this.logger.error(`Failed to acquire webhook lock: ${err.message}`);
+      return true; // Fallback to allowing processing if redis fails
+    }
+  }
+
+  /**
+   * Release the distributed lock for a webhook transaction.
+   */
+  async releaseWebhookLock(transactionId: string): Promise<void> {
+    try {
+      const lockKey = `payment:lock:webhook:${transactionId}`;
+      await this.redisService.del(lockKey);
+    } catch (err: any) {
+      this.logger.error(`Failed to release webhook lock: ${err.message}`);
+    }
+  }
+
+  /**
+   * Step 1: Authentication Token with Redis Caching (50-minute TTL)
+   * Calls POST https://accept.paymob.com/api/auth/tokens with api_key when cache misses.
    */
   async getAuthenticationToken(): Promise<string> {
     try {
-      this.logger.debug('Requesting Paymob Authentication Token...');
+      // 1. Check Redis Cache
+      const cachedToken = await this.redisService.get<string>(
+        PAYMOB_AUTH_TOKEN_REDIS_KEY,
+      );
+      if (cachedToken && typeof cachedToken === 'string' && cachedToken.length > 20) {
+        this.logger.debug('Using cached Paymob authentication token from Redis');
+        return cachedToken;
+      }
+
+      // 2. Fetch new Token from Paymob API
+      this.logger.log('Paymob auth token cache miss. Requesting new token from Paymob API...');
       const response = await this.client.post('/auth/tokens', {
         api_key: this.apiKey,
       });
@@ -96,6 +141,14 @@ export class PaymobProvider {
       if (!token) {
         throw new Error('Paymob authentication response missing token');
       }
+
+      // 3. Cache Token in Redis for 50 minutes (3000s)
+      await this.redisService.set(
+        PAYMOB_AUTH_TOKEN_REDIS_KEY,
+        token,
+        PAYMOB_AUTH_TOKEN_TTL_SECONDS,
+      );
+      this.logger.log('Cached new Paymob authentication token in Redis (TTL: 50m)');
 
       return token;
     } catch (error: any) {
@@ -240,7 +293,6 @@ export class PaymobProvider {
     }
 
     try {
-      // Paymob Transaction Webhook concatenation order:
       const obj = payload?.obj || payload;
 
       const concatenated = [

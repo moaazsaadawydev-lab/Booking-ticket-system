@@ -47,3 +47,13 @@ export enum BookingOutboxEvent {
 
 export const NOTIFICATION_SERVICE = 'NOTIFICATION_SERVICE';
 export const NOTIFICATION_QUEUE = 'notification_queue';
+
+export const PAYMENT_SERVICE = 'PAYMENT_SERVICE';
+export const PAYMENT_PACKAGE_NAME = 'payment';
+export const PAYMENT_QUEUE = 'payment_queue';
+
+export enum PaymentOutboxEvent {
+  PAYMENT_SUCCEEDED = 'payment.succeeded',
+  PAYMENT_FAILED = 'payment.failed',
+  PAYMENT_REFUNDED = 'payment.refunded',
+}
