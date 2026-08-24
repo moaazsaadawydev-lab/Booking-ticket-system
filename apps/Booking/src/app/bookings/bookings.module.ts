@@ -18,6 +18,7 @@ import {
   CancelBookingProvider,
   GetBookingProvider,
 } from './providers';
+import { BookingExpirationService } from './services/booking-expiration.service';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import {
     ConfirmBookingProvider,
     CancelBookingProvider,
     GetBookingProvider,
+    BookingExpirationService,
   ],
   exports: [
     SeatLockProvider,
@@ -65,6 +67,7 @@ import {
     ConfirmBookingProvider,
     CancelBookingProvider,
     GetBookingProvider,
+    BookingExpirationService,
   ],
 })
 export class BookingsModule {}
