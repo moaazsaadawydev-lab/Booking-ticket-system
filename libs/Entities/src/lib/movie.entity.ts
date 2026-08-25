@@ -89,13 +89,13 @@ export class Movie {
   })
   subtitles!: string[] | null;
 
-  @Column({ name: 'poster_url', type: 'varchar', length: 500, nullable: true, default: null })
+  @Column({ name: 'poster_url', type: 'text', nullable: true, default: null })
   posterUrl!: string | null;
 
-  @Column({ name: 'banner_url', type: 'varchar', length: 500, nullable: true, default: null })
+  @Column({ name: 'banner_url', type: 'text', nullable: true, default: null })
   bannerUrl!: string | null;
 
-  @Column({ name: 'trailer_url', type: 'varchar', length: 500, nullable: true, default: null })
+  @Column({ name: 'trailer_url', type: 'text', nullable: true, default: null })
   trailerUrl!: string | null;
 
   @Column({

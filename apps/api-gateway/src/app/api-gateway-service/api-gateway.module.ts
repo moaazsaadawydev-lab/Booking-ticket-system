@@ -24,6 +24,7 @@ import {
 import {
   CatalogMoviesController,
   CatalogCinemasController,
+  CatalogAuditoriumsController,
   CatalogSeatsController,
   CatalogShowtimesController,
 } from './Controllers/Catalog';
@@ -154,6 +155,7 @@ import { QrCodeService } from '@booking-ticket-system/Common';
     UsersAdminController,
     CatalogMoviesController,
     CatalogCinemasController,
+    CatalogAuditoriumsController,
     CatalogSeatsController,
     CatalogShowtimesController,
     BookingsController,

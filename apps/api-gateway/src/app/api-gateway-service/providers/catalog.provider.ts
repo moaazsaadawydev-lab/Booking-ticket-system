@@ -44,13 +44,32 @@ export class CatalogProvider implements OnModuleInit {
 
   // --- Movies ---
   async createMovie(dto: CreateMovieDto) {
-    const durationMinutes = Number(dto.durationMinutes ?? (dto as any).duration_minutes);
-    const releaseDate = String(dto.releaseDate ?? (dto as any).release_date);
-    const ageRating = String(dto.ageRating ?? (dto as any).age_rating);
-    const countryOfOrigin = dto.countryOfOrigin ?? (dto as any).country_of_origin;
-    const originalLanguage = String(dto.originalLanguage ?? (dto as any).original_language);
-    const spokenLanguages = dto.spokenLanguages ?? (dto as any).spoken_languages ?? [];
-    const subtitles = dto.subtitles ?? [];
+    const durationMinutes = Number(dto.durationMinutes ?? (dto as any).duration_minutes ?? 120);
+    const releaseDate = dto.releaseDate
+      ? String(dto.releaseDate)
+      : (dto as any).release_date
+        ? String((dto as any).release_date)
+        : new Date().toISOString();
+    
+    let ageRating = dto.ageRating ?? (dto as any).age_rating;
+    if (!ageRating || ageRating === 'undefined' || ageRating === 'PG-13') {
+      ageRating = 'PG_13';
+    }
+    
+    let status = dto.status ?? (dto as any).status;
+    if (!status || status === 'undefined') {
+      status = 'NOW_SHOWING';
+    }
+
+    const countryOfOrigin = (dto.countryOfOrigin ?? (dto as any).country_of_origin) || 'EG';
+    
+    let originalLanguage = dto.originalLanguage ?? (dto as any).original_language;
+    if (!originalLanguage || originalLanguage === 'undefined') {
+      originalLanguage = 'en';
+    }
+
+    const spokenLanguages = dto.spokenLanguages ?? (dto as any).spoken_languages ?? ['en'];
+    const subtitles = dto.subtitles ?? ['ar'];
     const posterUrl = dto.posterUrl ?? (dto as any).poster_url ?? null;
     const bannerUrl = dto.bannerUrl ?? (dto as any).banner_url ?? null;
     const trailerUrl = dto.trailerUrl ?? (dto as any).trailer_url ?? null;
@@ -69,7 +88,7 @@ export class CatalogProvider implements OnModuleInit {
         release_date: releaseDate,
         ageRating,
         age_rating: ageRating,
-        status: dto.status,
+        status,
         countryOfOrigin,
         country_of_origin: countryOfOrigin,
         originalLanguage,

@@ -6,6 +6,8 @@ import { Genre, Movie, OutboxMessage } from '@booking-ticket-system/Entities';
 import { CreateMovieDto } from '@booking-ticket-system/DTOs';
 import {
   ImageProfileType,
+  MovieAgeRating,
+  MovieStatus,
   OutboxStatus,
   slugify,
 } from '@booking-ticket-system/Utils';
@@ -44,14 +46,27 @@ export class CreateMovieProvider {
 
     const movieId = randomUUID();
     const durationMinutes = Number(
-      dto.durationMinutes ?? (dto as any).duration_minutes,
+      dto.durationMinutes ?? (dto as any).duration_minutes ?? 120,
     );
-    const releaseDate = dto.releaseDate ?? (dto as any).release_date;
-    const ageRating = dto.ageRating ?? (dto as any).age_rating;
+    const releaseDate = dto.releaseDate ?? (dto as any).release_date ?? new Date();
+    
+    let ageRating = dto.ageRating ?? (dto as any).age_rating;
+    if (!ageRating || ageRating === 'undefined' || ageRating === 'PG-13') {
+      ageRating = MovieAgeRating.PG_13;
+    }
+
+    let status = dto.status ?? (dto as any).status;
+    if (!status || status === 'undefined') {
+      status = MovieStatus.NOW_SHOWING;
+    }
+
     const countryOfOrigin =
-      dto.countryOfOrigin ?? (dto as any).country_of_origin ?? null;
-    const originalLanguage =
-      dto.originalLanguage ?? (dto as any).original_language ?? 'en';
+      dto.countryOfOrigin ?? (dto as any).country_of_origin ?? 'EG';
+    let originalLanguage =
+      dto.originalLanguage ?? (dto as any).original_language;
+    if (!originalLanguage || originalLanguage === 'undefined') {
+      originalLanguage = 'en';
+    }
     const spokenLanguages =
       dto.spokenLanguages ?? (dto as any).spoken_languages ?? [];
     const subtitles = dto.subtitles ?? [];

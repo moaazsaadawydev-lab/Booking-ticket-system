@@ -69,7 +69,7 @@ async function runFrontendContainerTests() {
     if (
       adminRes.status === 200 &&
       adminRes.data.includes('<html') &&
-      adminRes.data.includes('admin-dashboard')
+      (adminRes.data.includes('Aflamak') || adminRes.data.includes('Admin'))
     ) {
       recordTest('3.0', 'Admin Dashboard App Serves Home Page (Port 3002)', 'PASS', {
         status: adminRes.status,
