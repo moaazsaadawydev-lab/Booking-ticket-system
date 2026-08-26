@@ -176,7 +176,15 @@ export class CreateAuditoriumDto {
   @IsNotEmpty()
   name!: string;
 
-  @Transform(({ obj }) => obj.experience_type ?? obj.experienceType)
+  @Transform(({ obj }) => {
+    const raw = obj.experience_type ?? obj.experienceType ?? obj.type ?? 'STANDARD_2D';
+    const u = String(raw).toUpperCase();
+    if (u === 'IMAX' || u === 'IMAX_3D') return ExperienceType.IMAX_3D;
+    if (u === 'VIP' || u === 'VIP_LOUNGE') return ExperienceType.VIP_LOUNGE;
+    if (u === '4DX' || u === 'FOUR_DX') return ExperienceType.FOUR_DX;
+    if (u === 'STANDARD_3D') return ExperienceType.STANDARD_3D;
+    return ExperienceType.STANDARD_2D;
+  })
   @IsEnum(ExperienceType)
   experienceType!: ExperienceType;
 
@@ -185,24 +193,23 @@ export class CreateAuditoriumDto {
   @IsString()
   soundSystem?: string;
 
-  @Transform(({ obj }) =>
-    obj.total_rows !== undefined
-      ? Number(obj.total_rows)
-      : obj.totalRows !== undefined
-        ? Number(obj.totalRows)
-        : undefined,
-  )
+  @Transform(({ obj }) => {
+    const val = obj.total_rows ?? obj.totalRows;
+    if (val !== undefined && val !== null) return Number(val);
+    const seats = Number(obj.totalSeats ?? obj.total_seats ?? 120);
+    return Math.ceil(Math.sqrt(seats)) || 10;
+  })
   @IsInt()
   @Min(1)
   totalRows!: number;
 
-  @Transform(({ obj }) =>
-    obj.total_columns !== undefined
-      ? Number(obj.total_columns)
-      : obj.totalColumns !== undefined
-        ? Number(obj.totalColumns)
-        : undefined,
-  )
+  @Transform(({ obj }) => {
+    const val = obj.total_columns ?? obj.totalColumns;
+    if (val !== undefined && val !== null) return Number(val);
+    const seats = Number(obj.totalSeats ?? obj.total_seats ?? 120);
+    const rows = Math.ceil(Math.sqrt(seats)) || 10;
+    return Math.ceil(seats / rows) || 12;
+  })
   @IsInt()
   @Min(1)
   totalColumns!: number;

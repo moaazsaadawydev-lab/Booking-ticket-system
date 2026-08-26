@@ -5,7 +5,7 @@ import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import { Auditorium, Cinema, Seat, Showtime } from '@booking-ticket-system/Entities';
 import { CreateAuditoriumDto, UpdateAuditoriumDto } from '@booking-ticket-system/DTOs';
-import { SeatType } from '@booking-ticket-system/Utils';
+import { ExperienceType, SeatType } from '@booking-ticket-system/Utils';
 import { CatalogCacheService } from '../../cache/catalog-cache.service';
 
 @Injectable()
@@ -36,15 +36,37 @@ export class AuditoriumProvider {
       });
     }
 
-    const totalSeats = dto.totalRows * dto.totalColumns;
+    const rawExp = dto.experienceType ?? (dto as any).experience_type ?? (dto as any).type;
+    let experienceType = ExperienceType.STANDARD_2D;
+    if (rawExp) {
+      const u = String(rawExp).toUpperCase();
+      if (u === 'IMAX' || u === 'IMAX_3D') experienceType = ExperienceType.IMAX_3D;
+      else if (u === 'VIP' || u === 'VIP_LOUNGE') experienceType = ExperienceType.VIP_LOUNGE;
+      else if (u === '4DX' || u === 'FOUR_DX') experienceType = ExperienceType.FOUR_DX;
+      else if (u === 'STANDARD_3D') experienceType = ExperienceType.STANDARD_3D;
+      else experienceType = ExperienceType.STANDARD_2D;
+    }
+
+    const seatsInput = Number((dto as any).totalSeats ?? (dto as any).total_seats ?? 120);
+    let totalRows = Number(dto.totalRows ?? (dto as any).total_rows);
+    let totalColumns = Number(dto.totalColumns ?? (dto as any).total_columns);
+
+    if (!totalRows || isNaN(totalRows) || totalRows < 1) {
+      totalRows = Math.ceil(Math.sqrt(seatsInput)) || 10;
+    }
+    if (!totalColumns || isNaN(totalColumns) || totalColumns < 1) {
+      totalColumns = Math.ceil(seatsInput / totalRows) || 12;
+    }
+
+    const totalSeats = totalRows * totalColumns;
 
     const auditorium = this.auditoriumRepository.create({
       cinemaId: dto.cinemaId,
       name: dto.name,
-      experienceType: dto.experienceType,
-      soundSystem: dto.soundSystem || null,
-      totalRows: dto.totalRows,
-      totalColumns: dto.totalColumns,
+      experienceType,
+      soundSystem: dto.soundSystem || 'Dolby Atmos',
+      totalRows,
+      totalColumns,
       totalSeats,
       isActive: dto.isActive !== undefined ? dto.isActive : true,
     });

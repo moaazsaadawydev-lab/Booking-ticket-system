@@ -64,7 +64,14 @@ export interface Auditorium {
   name: string;
   totalSeats: number;
   type: 'STANDARD' | 'VIP' | 'IMAX' | '4DX';
+  experienceType?: string;
+  soundSystem?: string;
+  totalRows?: number;
+  totalColumns?: number;
+  cinemaName?: string;
+  cinemaCity?: string;
   cinema?: Cinema;
+  isActive?: boolean;
   createdAt: string;
 }
 

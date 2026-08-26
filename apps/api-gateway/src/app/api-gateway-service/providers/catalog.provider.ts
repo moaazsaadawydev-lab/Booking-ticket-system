@@ -327,10 +327,29 @@ export class CatalogProvider implements OnModuleInit {
 
   async createAuditorium(dto: CreateAuditoriumDto) {
     const cinemaId = dto.cinemaId ?? (dto as any).cinema_id;
-    const experienceType = dto.experienceType ?? (dto as any).experience_type;
-    const soundSystem = dto.soundSystem ?? (dto as any).sound_system;
-    const totalRows = Number(dto.totalRows ?? (dto as any).total_rows);
-    const totalColumns = Number(dto.totalColumns ?? (dto as any).total_columns);
+    const rawExp = dto.experienceType ?? (dto as any).experience_type ?? (dto as any).type ?? 'STANDARD_2D';
+    
+    let experienceType = 'STANDARD_2D';
+    const u = String(rawExp).toUpperCase();
+    if (u === 'IMAX' || u === 'IMAX_3D') experienceType = 'IMAX_3D';
+    else if (u === 'VIP' || u === 'VIP_LOUNGE') experienceType = 'VIP_LOUNGE';
+    else if (u === '4DX' || u === 'FOUR_DX') experienceType = 'FOUR_DX';
+    else if (u === 'STANDARD_3D') experienceType = 'STANDARD_3D';
+    else experienceType = 'STANDARD_2D';
+
+    const soundSystem = dto.soundSystem ?? (dto as any).sound_system ?? 'Dolby Atmos';
+    
+    const seats = Number((dto as any).totalSeats ?? (dto as any).total_seats ?? 120);
+    let totalRows = Number(dto.totalRows ?? (dto as any).total_rows);
+    let totalColumns = Number(dto.totalColumns ?? (dto as any).total_columns);
+
+    if (!totalRows || isNaN(totalRows) || totalRows < 1) {
+      totalRows = Math.ceil(Math.sqrt(seats)) || 10;
+    }
+    if (!totalColumns || isNaN(totalColumns) || totalColumns < 1) {
+      totalColumns = Math.ceil(seats / totalRows) || 12;
+    }
+
     const isActive = dto.isActive !== undefined ? dto.isActive : (dto as any).is_active;
 
     return await lastValueFrom(
