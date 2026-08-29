@@ -361,8 +361,8 @@ export default function UsersManagementPage() {
             </div>
           )}
 
-          <div className="rounded-lg bg-slate-50 dark:bg-slate-900/60 p-3 text-[11px] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800">
-            <span className="font-medium text-slate-900 dark:text-slate-200">Security Notice:</span> Changing a user's role will immediately purge active JWT sessions for this account in Redis, requiring them to sign back in with their new permissions.
+          <div className="rounded-lg bg-slate-50 dark:bg-slate-900/60 p-3 text-xs text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800">
+            <span className="font-semibold text-slate-900 dark:text-slate-200">Notice:</span> Changing a staff member's role will require them to sign in again to activate their updated permissions.
           </div>
 
           <div className="mt-5 flex justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">

@@ -29,20 +29,32 @@ function formatAvatarUrl(obj: any): any {
     }
 
     const baseUrl =
-      process.env['MEDIA_BASE_URL'] || 'http://localhost:9000/profile-photos/';
+      process.env['MEDIA_BASE_URL'] || 'http://localhost:3000/api/v1/media';
+    const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
 
-    const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+    const rawKey = obj['avatarKey'] || obj['avatar_key'];
+    let rawUrl = obj['avatarUrl'] || obj['avatar_url'];
 
-    if ('avatarKey' in obj || 'avatar_key' in obj) {
-      const key = obj['avatarKey'] || obj['avatar_key'];
-      if (typeof key === 'string' && key.trim() !== '') {
-        const cleanKey = key
-          .replace(/^(https?:\/\/[^\/]+\/profile-photos\/|profile-photos\/)/, '')
-          .replace(/^\//, '');
-        obj['avatarKey'] = `${cleanBaseUrl}${cleanKey}`;
+    if (typeof rawKey === 'string' && rawKey.trim() !== '') {
+      const cleanKey = rawKey
+        .replace(/^(https?:\/\/[^\/]+\/(profile-photos|catalog|media)\/|profile-photos\/|catalog\/)/, '')
+        .replace(/^\//, '');
+
+      obj['avatarKey'] = cleanKey;
+
+      if (!rawUrl || typeof rawUrl !== 'string' || rawUrl.trim() === '') {
+        rawUrl = cleanKey.startsWith('http')
+          ? cleanKey
+          : `${cleanBaseUrl}/${cleanKey}`;
       }
-      delete obj['avatar_key'];
     }
+
+    if (typeof rawUrl === 'string' && rawUrl.trim() !== '') {
+      obj['avatarUrl'] = rawUrl.trim();
+    }
+
+    delete obj['avatar_key'];
+    delete obj['avatar_url'];
 
     for (const key of Object.keys(obj)) {
       if (typeof obj[key] === 'object' && obj[key] !== null) {

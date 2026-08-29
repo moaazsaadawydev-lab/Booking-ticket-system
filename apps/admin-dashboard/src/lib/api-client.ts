@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { Movie, Cinema, Auditorium } from './types';
+import { Movie, Cinema, Auditorium, Showtime } from './types';
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -25,10 +25,16 @@ export function resolveImageUrl(url?: string | null): string {
   ) {
     return trimmed;
   }
-  // If stored in MinIO catalog bucket
-  const minioBase = process.env.NEXT_PUBLIC_MINIO_URL || 'http://localhost:9000/catalog';
+  const minioHost = process.env.NEXT_PUBLIC_MINIO_HOST || 'http://localhost:9000';
   const cleanPath = trimmed.startsWith('/') ? trimmed.slice(1) : trimmed;
-  return `${minioBase}/${cleanPath}`;
+  if (cleanPath.startsWith('avatars/') || cleanPath.startsWith('profile-photos/')) {
+    const withoutPrefix = cleanPath.replace(/^profile-photos\//, '');
+    return `${minioHost}/profile-photos/${withoutPrefix}`;
+  }
+  if (cleanPath.startsWith('catalog/')) {
+    return `${minioHost}/${cleanPath}`;
+  }
+  return `${minioHost}/catalog/${cleanPath}`;
 }
 
 // Safe list extractor utility to handle NestJS pagination objects & arrays
@@ -49,6 +55,15 @@ export function normalizeMovie(m: any): Movie {
   const trailer = m.trailerUrl ?? m.trailer_url ?? null;
   const gallery = m.galleryUrls ?? m.gallery_urls ?? [];
 
+  const rawGenres = m.genres ?? (m.genre ? [m.genre] : []);
+  const extractedGenres: string[] = Array.isArray(rawGenres)
+    ? rawGenres
+        .map((g: any) => (typeof g === 'object' ? g.name || g.slug || '' : String(g)))
+        .filter(Boolean)
+    : typeof m.genre === 'string'
+    ? m.genre.split(',').map((s: string) => s.trim()).filter(Boolean)
+    : [];
+
   return {
     id: m.id,
     title: m.title || '',
@@ -60,11 +75,11 @@ export function normalizeMovie(m: any): Movie {
     thumbnailUrl: poster,
     trailerUrl: trailer,
     galleryUrls: Array.isArray(gallery) ? gallery : [],
+    genres: extractedGenres,
     genre:
-      m.genre ||
-      (Array.isArray(m.genres) && m.genres.length > 0
-        ? m.genres.map((g: any) => g.name || g).join(', ')
-        : 'Feature Film'),
+      extractedGenres.length > 0
+        ? extractedGenres.join(', ')
+        : m.genre || 'Feature Film',
     rating: Number(m.rating ?? m.rating_average ?? m.ratingAverage ?? 8.5),
     ageRating: m.ageRating ?? m.age_rating ?? 'PG_13',
     status: m.status || 'NOW_SHOWING',
@@ -139,6 +154,43 @@ export function normalizeAuditorium(a: any): Auditorium {
         ? a.is_active
         : true,
     createdAt: a.createdAt ?? a.created_at ?? new Date().toISOString(),
+  };
+}
+
+export function normalizeShowtime(st: any): Showtime {
+  const pricings = Array.isArray(st.seatPricings)
+    ? st.seatPricings
+    : Array.isArray(st.seat_pricings)
+    ? st.seat_pricings
+    : [];
+
+  return {
+    id: st.id,
+    movieId: st.movieId ?? st.movie_id ?? '',
+    cinemaId:
+      st.cinemaId ??
+      st.cinema_id ??
+      st.auditorium?.cinemaId ??
+      st.auditorium?.cinema_id ??
+      '',
+    auditoriumId: st.auditoriumId ?? st.auditorium_id ?? '',
+    startTime: st.startTime ?? st.start_time ?? '',
+    endTime: st.endTime ?? st.end_time ?? '',
+    basePrice: Number(st.basePrice ?? st.base_price ?? 150),
+    movie: st.movie ? normalizeMovie(st.movie) : undefined,
+    cinema: st.cinema
+      ? normalizeCinema(st.cinema)
+      : st.auditorium?.cinema
+      ? normalizeCinema(st.auditorium.cinema)
+      : undefined,
+    auditorium: st.auditorium ? normalizeAuditorium(st.auditorium) : undefined,
+    seatPricings: pricings.map((p: any) => ({
+      id: p.id,
+      showtimeId: p.showtimeId ?? p.showtime_id,
+      seatType: p.seatType ?? p.seat_type ?? 'REGULAR',
+      price: Number(p.price),
+    })),
+    createdAt: st.createdAt ?? st.created_at ?? new Date().toISOString(),
   };
 }
 

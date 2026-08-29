@@ -31,9 +31,23 @@ export class ProfileProvider {
     userId: string,
     mediaUrl: string,
   ): Promise<{ message: string }> {
+    const cleanKey = mediaUrl
+      .replace(/^(https?:\/\/[^\/]+\/(profile-photos|catalog|media)\/|profile-photos\/|catalog\/)/, '')
+      .replace(/^\//, '');
+
+    const baseUrl =
+      process.env['MEDIA_BASE_URL'] || 'http://localhost:3000/api/v1/media';
+    const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+    const computedAvatarUrl = mediaUrl.startsWith('http')
+      ? mediaUrl
+      : `${cleanBaseUrl}/${cleanKey}`;
+
     const result = await this.userRepository.update(
       { id: userId },
-      { avatarKey: mediaUrl },
+      {
+        avatarKey: cleanKey,
+        avatarUrl: computedAvatarUrl,
+      },
     );
 
     if (result.affected === 0) {

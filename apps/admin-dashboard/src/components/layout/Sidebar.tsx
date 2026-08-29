@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -13,11 +13,12 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  ShieldAlert,
-  Radio,
-  Sliders,
+  Clapperboard,
+  Sparkles,
+  Ticket,
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
+import { resolveImageUrl } from '../../lib/api-client';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -31,6 +32,7 @@ interface NavItem {
   roles: string[];
   pulse?: boolean;
   badge?: string;
+  badgeVariant?: 'gold' | 'crimson' | 'imax';
 }
 
 interface NavGroup {
@@ -41,13 +43,16 @@ interface NavGroup {
 export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
   const pathname = usePathname();
   const { user, role, logout } = useAuth();
+  const [imgError, setImgError] = useState(false);
+
+  const avatarSrc = user?.avatarUrl ? resolveImageUrl(user.avatarUrl) : '';
 
   const navGroups: NavGroup[] = [
     {
-      label: 'SYSTEM OPS',
+      label: 'MAIN DASHBOARD',
       items: [
         {
-          name: 'Command Center',
+          name: 'Dashboard Overview',
           href: '/dashboard',
           icon: LayoutDashboard,
           roles: ['super_admin', 'admin', 'cinema_admin', 'staff', 'gate_checker'],
@@ -56,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
       ],
     },
     {
-      label: 'CATALOG & VENUES',
+      label: 'CINEMA MANAGEMENT',
       items: [
         {
           name: 'Movies Catalog',
@@ -77,7 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
           roles: ['super_admin', 'admin', 'cinema_admin'],
         },
         {
-          name: 'Showtime Schedule',
+          name: 'Showtime Schedules',
           href: '/dashboard/showtimes',
           icon: Calendar,
           roles: ['super_admin', 'admin', 'cinema_admin'],
@@ -85,13 +90,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
       ],
     },
     {
-      label: 'GOVERNANCE & ACCESS',
+      label: 'STAFF & PERMISSIONS',
       items: [
         {
-          name: 'Users & Staff RBAC',
+          name: 'Staff & Gate Checkers',
           href: '/dashboard/users',
           icon: Users,
           badge: 'Super Admin',
+          badgeVariant: 'gold',
           roles: ['super_admin'],
         },
       ],
@@ -108,27 +114,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
       <div className="flex h-14 items-center justify-between border-b border-slate-100 dark:border-slate-800/80 px-3.5">
         {!collapsed ? (
           <div className="flex items-center gap-2.5">
-            <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-bold text-xs shadow-md shadow-blue-500/20">
-              <span>A</span>
+            <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-600 via-rose-600 to-amber-600 text-white font-bold text-xs shadow-md shadow-red-600/30">
+              <Clapperboard className="h-4 w-4" />
               <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#080c14]" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                <span className="text-xs font-black tracking-wider text-slate-900 dark:text-slate-100 uppercase">
                   AFLAMAK
                 </span>
-                <span className="rounded bg-blue-50 dark:bg-blue-950/80 px-1 py-0.2 text-[9px] font-mono font-semibold text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60">
-                  OS v2.4
+                <span className="rounded bg-red-50 dark:bg-red-950/80 px-1.5 py-0.2 text-[9px] font-bold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/60">
+                  CINEMA
                 </span>
               </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono tracking-wider">
-                CINEMA CONTROL
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 tracking-wider">
+                Manager Portal
               </p>
             </div>
           </div>
         ) : (
-          <div className="mx-auto relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-bold text-xs shadow-md shadow-blue-500/20">
-            <span>A</span>
+          <div className="mx-auto relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-600 via-rose-600 to-amber-600 text-white font-bold text-xs shadow-md shadow-red-600/30">
+            <Clapperboard className="h-4 w-4" />
             <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#080c14]" />
           </div>
         )}
@@ -158,7 +164,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
           return (
             <div key={groupIdx} className="space-y-1">
               {!collapsed && (
-                <div className="px-2.5 pb-1 text-[10px] font-mono font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
+                <div className="px-2.5 pb-1 text-[10px] font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
                   {group.label}
                 </div>
               )}
@@ -175,7 +181,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
                     href={item.href}
                     className={`group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all ${
                       isActive
-                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 font-semibold border border-blue-200/60 dark:border-blue-900/60 active-nav-glow'
+                        ? 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-400 font-semibold border border-red-200/60 dark:border-red-900/60 active-nav-glow'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
                     }`}
                     title={collapsed ? item.name : undefined}
@@ -183,7 +189,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
                     <Icon
                       className={`h-4 w-4 shrink-0 transition-colors ${
                         isActive
-                          ? 'text-blue-600 dark:text-blue-400'
+                          ? 'text-red-600 dark:text-red-400'
                           : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'
                       }`}
                     />
@@ -197,7 +203,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
                           </span>
                         )}
                         {item.badge && (
-                          <span className="rounded bg-amber-50 dark:bg-amber-950/70 px-1.5 py-0.2 text-[9px] font-mono font-medium text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60">
+                          <span className="rounded bg-amber-50 dark:bg-amber-950/70 px-1.5 py-0.2 text-[9px] font-medium text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60">
                             {item.badge}
                           </span>
                         )}
@@ -217,24 +223,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
           <div className="rounded-xl border border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-[#0f172a] p-2.5 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 overflow-hidden">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-800 text-[11px] font-mono font-bold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700">
-                  {user?.name?.slice(0, 2).toUpperCase() || 'AD'}
-                </div>
+                {avatarSrc && !imgError ? (
+                  <img
+                    src={avatarSrc}
+                    alt={user?.name || 'Admin'}
+                    onError={() => setImgError(true)}
+                    className="h-7 w-7 shrink-0 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shadow-sm"
+                  />
+                ) : (
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-950/80 text-[11px] font-bold text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/60">
+                    {user?.name?.charAt(0)?.toUpperCase() || 'A'}
+                  </div>
+                )}
                 <div className="truncate">
                   <p className="truncate text-xs font-semibold text-slate-900 dark:text-slate-100">
-                    {user?.name || 'Operations Admin'}
+                    {user?.name || 'Cinema Manager'}
                   </p>
                   <div className="flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    <span className="truncate text-[10px] text-slate-500 dark:text-slate-400 font-mono uppercase">
-                      {role || 'ADMIN'}
+                    <span className="truncate text-[10px] text-slate-500 dark:text-slate-400 uppercase">
+                      {role?.replace('_', ' ') || 'ADMIN'}
                     </span>
                   </div>
                 </div>
               </div>
               <button
                 onClick={logout}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
                 title="Sign out"
               >
                 <LogOut className="h-3.5 w-3.5" />
@@ -244,10 +259,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
         ) : (
           <button
             onClick={logout}
-            className="flex w-full justify-center rounded-lg p-2 text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+            className="flex w-full justify-center rounded-lg p-2 text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
             title="Sign out"
           >
-            <LogOut className="h-4 w-4" />
+            {avatarSrc && !imgError ? (
+              <img
+                src={avatarSrc}
+                alt={user?.name || 'Admin'}
+                onError={() => setImgError(true)}
+                className="h-6 w-6 rounded-md object-cover border border-slate-200 dark:border-slate-700"
+              />
+            ) : (
+              <LogOut className="h-4 w-4" />
+            )}
           </button>
         )}
       </div>
@@ -256,3 +280,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
 };
 
 export default Sidebar;
+
+
+

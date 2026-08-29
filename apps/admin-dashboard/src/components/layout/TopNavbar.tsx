@@ -1,15 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../lib/auth-context';
 import { Badge } from '../ui/Badge';
 import ThemeToggle from './ThemeToggle';
-import { Activity, Server, ShieldCheck, Search, Command } from 'lucide-react';
+import { resolveImageUrl } from '../../lib/api-client';
 
 export const TopNavbar: React.FC = () => {
   const pathname = usePathname();
   const { user, role } = useAuth();
+  const [imgError, setImgError] = useState(false);
 
   const pathSegments = pathname
     .split('/')
@@ -18,20 +19,22 @@ export const TopNavbar: React.FC = () => {
 
   const roleVariant =
     role === 'super_admin'
-      ? 'gold'
+      ? 'vip'
       : role === 'admin'
-      ? 'blue'
+      ? 'crimson'
       : role === 'cinema_admin'
-      ? 'emerald'
+      ? 'imax'
       : 'slate';
 
+  const avatarSrc = user?.avatarUrl ? resolveImageUrl(user.avatarUrl) : '';
+
   return (
-    <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between border-b border-slate-200 dark:border-slate-800/80 bg-white/80 dark:bg-[#080c14]/80 px-6 backdrop-blur-md">
-      {/* Breadcrumb & OS Identifier */}
-      <div className="flex items-center gap-2 text-xs font-mono">
-        <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-slate-200">
-          <span className="h-2 w-2 rounded-full bg-blue-600 dark:bg-blue-500 animate-pulse" />
-          <span>AFLAMAK OS</span>
+    <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between border-b border-slate-200 dark:border-slate-800/80 bg-white/90 dark:bg-[#080c14]/90 px-6 backdrop-blur-md">
+      {/* Breadcrumb & Brand Identifier */}
+      <div className="flex items-center gap-2 text-xs">
+        <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-slate-100">
+          <span className="h-2 w-2 rounded-full bg-red-600 dark:bg-red-500 animate-pulse shadow-sm shadow-red-500" />
+          <span className="tracking-wide">Aflamak Cinemas</span>
         </div>
         {pathSegments.length > 0 && <span className="text-slate-400">/</span>}
         {pathSegments.map((segment, idx) => (
@@ -39,7 +42,7 @@ export const TopNavbar: React.FC = () => {
             <span
               className={
                 idx === pathSegments.length - 1
-                  ? 'font-semibold text-blue-600 dark:text-blue-400'
+                  ? 'font-bold text-red-600 dark:text-red-400'
                   : 'text-slate-500 dark:text-slate-400'
               }
             >
@@ -50,45 +53,47 @@ export const TopNavbar: React.FC = () => {
         ))}
       </div>
 
-      {/* Center Cluster Telemetry (Desktop Only) */}
-      <div className="hidden lg:flex items-center gap-4 text-[11px] font-mono text-slate-500 dark:text-slate-400">
-        <div className="flex items-center gap-1.5 border-r border-slate-200 dark:border-slate-800/80 pr-4">
-          <Server className="h-3.5 w-3.5 text-blue-500" />
-          <span>GATEWAY: <strong className="text-emerald-600 dark:text-emerald-400 font-normal">HTTP/gRPC OK</strong></span>
-        </div>
-        <div className="flex items-center gap-1.5 border-r border-slate-200 dark:border-slate-800/80 pr-4">
-          <Activity className="h-3.5 w-3.5 text-indigo-500" />
-          <span>REDIS HOLD: <strong className="text-slate-700 dark:text-slate-300 font-normal">ACTIVE</strong></span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <ShieldCheck className="h-3.5 w-3.5 text-amber-500" />
-          <span>SCOPED SCOPE: <strong className="text-amber-600 dark:text-amber-400 font-normal">ADMIN_PORTAL</strong></span>
-        </div>
-      </div>
-
       {/* Right Controls */}
       <div className="flex items-center gap-3">
+        {/* Live Booking Pulse */}
+        <div className="hidden lg:flex items-center gap-1.5 rounded-full border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+          <span>Booking System Online</span>
+        </div>
+
         {/* Role Badge */}
         {role && (
-          <Badge variant={roleVariant} size="sm">
+          <Badge variant={roleVariant as any} size="sm">
             {role.replace('_', ' ').toUpperCase()}
           </Badge>
         )}
 
-        {/* Live Cluster Health Indicator */}
-        <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 text-[11px] font-mono font-medium text-emerald-700 dark:text-emerald-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>CLUSTER ONLINE</span>
-        </div>
-
         {/* Dark/Light Mode Toggle */}
         <ThemeToggle />
 
-        {/* User Avatar & Scope Badge */}
+        {/* User Avatar & Profile Info */}
         <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 text-xs font-mono font-bold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700">
-            {user?.name?.charAt(0) || 'A'}
-          </div>
+          {avatarSrc && !imgError ? (
+            <img
+              src={avatarSrc}
+              alt={user?.name || 'Admin'}
+              onError={() => setImgError(true)}
+              className="h-7 w-7 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shadow-sm"
+              title={user?.email || 'Logged in user'}
+            />
+          ) : (
+            <div
+              className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-red-600 to-rose-700 text-xs font-bold text-white shadow-sm shadow-red-600/30"
+              title={user?.email || 'Logged in user'}
+            >
+              {user?.name?.charAt(0)?.toUpperCase() || 'A'}
+            </div>
+          )}
+          {user?.name && (
+            <span className="hidden md:inline text-xs font-semibold text-slate-700 dark:text-slate-300">
+              {user.name}
+            </span>
+          )}
         </div>
       </div>
     </header>
@@ -96,3 +101,6 @@ export const TopNavbar: React.FC = () => {
 };
 
 export default TopNavbar;
+
+
+

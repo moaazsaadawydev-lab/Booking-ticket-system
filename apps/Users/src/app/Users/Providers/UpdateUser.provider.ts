@@ -63,7 +63,12 @@ export class UpdateUserProvider {
       if (tempKey) {
         const oldAvatarKey = user.avatarKey;
         const newAvatarKey = `avatars/${userId}-${Date.now()}.webp`;
+        const baseUrl =
+          process.env['MEDIA_BASE_URL'] || 'http://localhost:3000/api/v1/media';
+        const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+
         user.avatarKey = newAvatarKey;
+        user.avatarUrl = `${cleanBaseUrl}/${newAvatarKey}`;
 
         await queryRunner.manager.save(
           queryRunner.manager.create(OutboxMessage, {

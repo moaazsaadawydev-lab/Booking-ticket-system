@@ -10,6 +10,8 @@
     --text-secondary: #64748b;
     --border-color: #e2e8f0;
     --card-bg: #ffffff;
+    --accent-crimson: #e50914;
+    --accent-gold: #f59e0b;
     --accent-blue: #2563eb;
   }
 
@@ -20,6 +22,8 @@
     --text-secondary: #94a3b8;
     --border-color: #1e293b;
     --card-bg: #0f172a;
+    --accent-crimson: #e50914;
+    --accent-gold: #f59e0b;
     --accent-blue: #3b82f6;
   }
 
@@ -33,7 +37,7 @@
     transition: background-color 0.2s ease, color 0.2s ease;
   }
 
-  /* Monospace font styling for IDs, status indicators, and logs */
+  /* Monospace font styling for IDs, showtimes, seats, and metrics */
   .font-mono-code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   }
@@ -63,7 +67,15 @@
 
 /* Subtle glow and active borders */
 .active-nav-glow {
-  box-shadow: 0 0 12px -2px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 16px -2px rgba(229, 9, 20, 0.25);
+}
+
+.active-nav-glow-gold {
+  box-shadow: 0 0 16px -2px rgba(245, 158, 11, 0.25);
+}
+
+.active-nav-glow-blue {
+  box-shadow: 0 0 16px -2px rgba(59, 130, 246, 0.25);
 }
 
 /* Custom Glassmorphism */
@@ -72,3 +84,13 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
+
+/* Cinema Marquee subtle light effect */
+.marquee-glow {
+  background: radial-gradient(circle at 50% -20%, rgba(229, 9, 20, 0.15), transparent 70%);
+}
+
+.gold-glow {
+  background: radial-gradient(circle at 50% -20%, rgba(245, 158, 11, 0.15), transparent 70%);
+}
+

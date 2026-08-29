@@ -31,6 +31,7 @@ export interface Movie {
   trailerUrl?: string | null;
   galleryUrls?: string[];
   genre?: string | null;
+  genres?: string[];
   rating?: number | null;
   ageRating?: string;
   status?: string;
@@ -75,6 +76,13 @@ export interface Auditorium {
   createdAt: string;
 }
 
+export interface ShowtimeSeatPricing {
+  id?: string;
+  showtimeId?: string;
+  seatType: string;
+  price: number;
+}
+
 export interface Showtime {
   id: string;
   movieId: string;
@@ -86,6 +94,7 @@ export interface Showtime {
   movie?: Movie;
   cinema?: Cinema;
   auditorium?: Auditorium;
+  seatPricings?: ShowtimeSeatPricing[];
   createdAt: string;
 }
 

@@ -8,7 +8,7 @@ import React, {
   useCallback,
 } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import apiClient from './api-client';
+import apiClient, { resolveImageUrl } from './api-client';
 import { User, UserRole } from './types';
 
 interface AuthContextType {
@@ -31,6 +31,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  const fetchUserProfile = useCallback(async (tokenToUse: string) => {
+    try {
+      const res = await apiClient.get('/users/profile/me', {
+        headers: { Authorization: `Bearer ${tokenToUse}` },
+      });
+      const rawData = res.data?.data || res.data;
+      const profileData = rawData?.user || rawData;
+      if (profileData) {
+        setUser((prev) => {
+          const updated: User = {
+            id: profileData.id || prev?.id || 'admin-user',
+            name: profileData.name || prev?.name || 'Admin',
+            email: profileData.email || prev?.email || '',
+            role: (profileData.role || prev?.role || 'admin').toLowerCase() as UserRole,
+            cinemaId: profileData.cinemaId || profileData.cinema_id || prev?.cinemaId,
+            status: profileData.status || prev?.status || 'ACTIVE',
+            avatarUrl:
+              profileData.avatarUrl ||
+              profileData.avatar_url ||
+              profileData.avatar ||
+              (profileData.avatarKey
+                ? resolveImageUrl(profileData.avatarKey)
+                : null) ||
+              prev?.avatarUrl ||
+              null,
+            createdAt: profileData.createdAt || prev?.createdAt || new Date().toISOString(),
+          };
+          localStorage.setItem('admin_user_data', JSON.stringify(updated));
+          return updated;
+        });
+      }
+    } catch (e) {
+      // Silent fallback if offline or profile route busy
+    }
+  }, []);
+
   // Load session from localStorage on initial render
   useEffect(() => {
     try {
@@ -39,14 +75,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (savedToken && savedUserStr) {
         setToken(savedToken);
-        setUser(JSON.parse(savedUserStr));
+        const parsed = JSON.parse(savedUserStr);
+        setUser(parsed);
+        fetchUserProfile(savedToken);
       }
     } catch (e) {
       console.error('Failed to parse saved user data:', e);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [fetchUserProfile]);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
@@ -70,6 +108,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: userRole,
         cinemaId,
         status: 'ACTIVE',
+        avatarUrl:
+          responseData.avatarUrl ||
+          responseData.avatar_url ||
+          responseData.avatar ||
+          null,
         createdAt: new Date().toISOString(),
       };
 
@@ -86,6 +129,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setToken(accessToken);
       setUser(loggedUser);
+
+      // Async fetch profile to ensure avatar is up to date
+      fetchUserProfile(accessToken);
 
       router.push('/dashboard');
     } catch (error: any) {

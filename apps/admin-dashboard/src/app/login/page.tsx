@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../../lib/auth-context';
-import { Lock, Mail, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Lock, Mail, AlertCircle, ArrowRight, Clapperboard } from 'lucide-react';
 import ThemeToggle from '../../components/layout/ThemeToggle';
 
 export default function LoginPage() {
@@ -22,7 +22,7 @@ export default function LoginPage() {
     } catch (err: any) {
       setError(
         err.message ||
-          'Failed to sign in. Please verify your credentials and permissions.',
+          'Failed to sign in. Please verify your email and password.',
       );
     } finally {
       setLoading(false);
@@ -30,31 +30,29 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center bg-slate-50 dark:bg-[#090d16] px-4 py-12 selection:bg-blue-600 selection:text-white">
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-slate-50 dark:bg-[#080c14] px-4 py-12 selection:bg-red-600 selection:text-white overflow-hidden">
+      {/* Cinematic Ambient Backdrop */}
+      <div className="pointer-events-none absolute -top-40 -left-40 h-96 w-96 rounded-full bg-red-600/10 dark:bg-red-600/15 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-amber-600/10 dark:bg-amber-600/10 blur-3xl" />
+
       {/* Theme Toggle Top Right */}
       <div className="absolute top-6 right-6">
         <ThemeToggle />
       </div>
 
       {/* Main Login Card */}
-      <div className="w-full max-w-sm rounded-xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0f172a] p-8 shadow-sm">
+      <div className="relative w-full max-w-sm rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-[#0f172a]/95 p-8 shadow-xl backdrop-blur-md">
         {/* Brand Header */}
         <div className="text-center">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white font-bold text-base shadow-sm">
-            A
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-red-600 via-rose-600 to-amber-600 text-white font-bold text-base shadow-lg shadow-red-600/30">
+            <Clapperboard className="h-6 w-6" />
           </div>
-          <h1 className="mt-4 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-            Aflamak Admin OS
+          <h1 className="mt-4 text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            Aflamak Cinemas
           </h1>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Operations & Theater Management Console
+            Cinema Manager & Staff Portal
           </p>
-        </div>
-
-        {/* Scope Pill */}
-        <div className="mt-5 flex items-center justify-center gap-1.5 rounded-md border border-blue-200 dark:border-blue-900/60 bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 text-[11px] font-medium text-blue-700 dark:text-blue-400">
-          <ShieldCheck className="h-3.5 w-3.5" />
-          <span>SCOPE: ADMIN_PORTAL</span>
         </div>
 
         {/* Error Alert */}
@@ -69,7 +67,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="mt-5 space-y-3.5 text-xs">
           <div>
             <label className="block font-medium text-slate-700 dark:text-slate-300">
-              Email address
+              Email Address
             </label>
             <div className="relative mt-1">
               <Mail className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
@@ -78,8 +76,8 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@aflamak.com"
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-700/80 bg-white dark:bg-slate-900/80 py-2 pl-9 pr-3 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
+                placeholder="manager@aflamak.com"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700/80 bg-white dark:bg-slate-900/80 py-2 pl-9 pr-3 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-colors"
               />
             </div>
           </div>
@@ -96,7 +94,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-700/80 bg-white dark:bg-slate-900/80 py-2 pl-9 pr-3 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700/80 bg-white dark:bg-slate-900/80 py-2 pl-9 pr-3 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-colors"
               />
             </div>
           </div>
@@ -104,7 +102,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60 transition-colors cursor-pointer"
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-red-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md shadow-red-600/30 hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-60 transition-all cursor-pointer"
           >
             {loading ? (
               <span className="flex items-center gap-1.5">
@@ -113,17 +111,19 @@ export default function LoginPage() {
               </span>
             ) : (
               <>
-                <span>Sign in</span>
+                <span>Sign In to Portal</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </>
             )}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-[11px] text-slate-400 dark:text-slate-500">
-          Aflamak Cinema OS &copy; {new Date().getFullYear()}
+        <div className="mt-6 text-center text-xs text-slate-400 dark:text-slate-500">
+          Aflamak Cinemas &copy; {new Date().getFullYear()}
         </div>
       </div>
     </div>
   );
 }
+
+

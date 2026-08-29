@@ -26,6 +26,24 @@ import {
   Sparkles,
 } from 'lucide-react';
 
+const AVAILABLE_GENRES = [
+  'Action',
+  'Adventure',
+  'Animation',
+  'Comedy',
+  'Crime',
+  'Documentary',
+  'Drama',
+  'Family',
+  'Fantasy',
+  'Horror',
+  'Mystery',
+  'Romance',
+  'Sci-Fi',
+  'Thriller',
+  'War',
+];
+
 export default function MoviesPage() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +66,7 @@ export default function MoviesPage() {
     bannerUrl: '',
     trailerUrl: '',
     galleryUrls: [] as string[],
+    genres: ['Action'] as string[],
     genre: 'Action',
     rating: 8.5,
     ageRating: 'PG_13',
@@ -82,6 +101,16 @@ export default function MoviesPage() {
   };
 
   const openEditModal = (movie: Movie) => {
+    const movieGenres =
+      movie.genres && movie.genres.length > 0
+        ? movie.genres
+        : movie.genre
+        ? movie.genre
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : ['Action'];
+
     setEditingMovie(movie);
     setFormData({
       title: movie.title || '',
@@ -94,7 +123,8 @@ export default function MoviesPage() {
       bannerUrl: movie.bannerUrl || '',
       trailerUrl: movie.trailerUrl || '',
       galleryUrls: movie.galleryUrls || [],
-      genre: movie.genre || 'Action',
+      genres: movieGenres,
+      genre: movieGenres.join(', '),
       rating: movie.rating || 8.5,
       ageRating: movie.ageRating || 'PG_13',
       status: movie.status || 'NOW_SHOWING',
@@ -107,6 +137,7 @@ export default function MoviesPage() {
     setSaving(true);
     setError(null);
     try {
+      const selectedGenres = formData.genres.length > 0 ? formData.genres : ['Action'];
       await apiClient.post('/movies', {
         title: formData.title,
         description: formData.description,
@@ -116,7 +147,9 @@ export default function MoviesPage() {
         bannerUrl: formData.bannerUrl || undefined,
         trailerUrl: formData.trailerUrl || undefined,
         galleryUrls: formData.galleryUrls.length > 0 ? formData.galleryUrls : undefined,
-        genre: formData.genre,
+        genres: selectedGenres,
+        genreIds: selectedGenres,
+        genre: selectedGenres.join(', '),
         rating: Number(formData.rating),
         ageRating: formData.ageRating,
         status: formData.status,
@@ -141,6 +174,7 @@ export default function MoviesPage() {
     setSaving(true);
     setError(null);
     try {
+      const selectedGenres = formData.genres.length > 0 ? formData.genres : ['Action'];
       await apiClient.patch(`/movies/${editingMovie.id}`, {
         title: formData.title,
         description: formData.description,
@@ -150,7 +184,9 @@ export default function MoviesPage() {
         bannerUrl: formData.bannerUrl || undefined,
         trailerUrl: formData.trailerUrl || undefined,
         galleryUrls: formData.galleryUrls,
-        genre: formData.genre,
+        genres: selectedGenres,
+        genreIds: selectedGenres,
+        genre: selectedGenres.join(', '),
         rating: Number(formData.rating),
         ageRating: formData.ageRating,
         status: formData.status,
@@ -181,11 +217,17 @@ export default function MoviesPage() {
 
   const safeMovies = Array.isArray(movies) ? movies : [];
   const filteredMovies = safeMovies.filter((m) => {
-    const matchesSearch =
-      m?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const titleMatch = m?.title?.toLowerCase().includes(searchQuery.toLowerCase());
+    const genreMatch =
+      (m?.genres && m.genres.some((g) => g.toLowerCase().includes(searchQuery.toLowerCase()))) ||
       (m?.genre && m.genre.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesSearch = titleMatch || genreMatch;
+
     const matchesGenre =
-      genreFilter === 'ALL' || (m.genre && m.genre.includes(genreFilter));
+      genreFilter === 'ALL' ||
+      (m.genres && m.genres.some((g) => g.toLowerCase() === genreFilter.toLowerCase())) ||
+      (m.genre && m.genre.toLowerCase().includes(genreFilter.toLowerCase()));
+
     return matchesSearch && matchesGenre;
   });
 
@@ -350,11 +392,21 @@ export default function MoviesPage() {
                         </div>
                       </td>
 
-                      {/* Genre */}
+                      {/* Genre Badges */}
                       <td className="px-5 py-3.5">
-                        <Badge variant="slate" size="sm">
-                          {movie.genre || 'Feature'}
-                        </Badge>
+                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                          {movie.genres && movie.genres.length > 0 ? (
+                            movie.genres.map((g, idx) => (
+                              <Badge key={idx} variant="slate" size="sm">
+                                {g}
+                              </Badge>
+                            ))
+                          ) : (
+                            <Badge variant="slate" size="sm">
+                              {movie.genre || 'Feature Film'}
+                            </Badge>
+                          )}
+                        </div>
                       </td>
 
                       {/* Duration */}
@@ -507,44 +559,65 @@ export default function MoviesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
               <label className="block font-medium text-slate-700 dark:text-slate-300">
-                Genre
+                Genres (Select one or more) *
               </label>
-              <select
-                value={formData.genre}
-                onChange={(e) =>
-                  setFormData({ ...formData, genre: e.target.value })
-                }
-                className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
-              >
-                <option value="Action">Action</option>
-                <option value="Sci-Fi">Sci-Fi</option>
-                <option value="Drama">Drama</option>
-                <option value="Comedy">Comedy</option>
-                <option value="Horror">Horror</option>
-                <option value="Animation">Animation</option>
-                <option value="Adventure">Adventure</option>
-                <option value="Thriller">Thriller</option>
-              </select>
+              <span className="text-[11px] font-mono text-blue-600 dark:text-blue-400 font-semibold">
+                {formData.genres.length} selected
+              </span>
             </div>
-            <div>
-              <label className="block font-medium text-slate-700 dark:text-slate-300">
-                Rating (1 - 10)
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                min="0"
-                max="10"
-                value={formData.rating}
-                onChange={(e) =>
-                  setFormData({ ...formData, rating: Number(e.target.value) })
-                }
-                className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
-              />
+            <div className="flex flex-wrap gap-1.5 p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/60 max-h-32 overflow-y-auto">
+              {AVAILABLE_GENRES.map((g) => {
+                const selected = formData.genres.includes(g);
+                return (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => {
+                      if (selected) {
+                        const next = formData.genres.filter((item) => item !== g);
+                        setFormData({
+                          ...formData,
+                          genres: next.length > 0 ? next : [g],
+                        });
+                      } else {
+                        setFormData({
+                          ...formData,
+                          genres: [...formData.genres, g],
+                        });
+                      }
+                    }}
+                    className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-all cursor-pointer ${
+                      selected
+                        ? 'bg-blue-600 text-white font-semibold shadow-sm'
+                        : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                    }`}
+                  >
+                    {selected ? '✓ ' : '+ '}
+                    {g}
+                  </button>
+                );
+              })}
             </div>
+          </div>
+
+          <div>
+            <label className="block font-medium text-slate-700 dark:text-slate-300">
+              Rating (1 - 10)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              max="10"
+              value={formData.rating}
+              onChange={(e) =>
+                setFormData({ ...formData, rating: Number(e.target.value) })
+              }
+              className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -721,44 +794,65 @@ export default function MoviesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
               <label className="block font-medium text-slate-700 dark:text-slate-300">
-                Genre
+                Genres (Select one or more) *
               </label>
-              <select
-                value={formData.genre}
-                onChange={(e) =>
-                  setFormData({ ...formData, genre: e.target.value })
-                }
-                className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
-              >
-                <option value="Action">Action</option>
-                <option value="Sci-Fi">Sci-Fi</option>
-                <option value="Drama">Drama</option>
-                <option value="Comedy">Comedy</option>
-                <option value="Horror">Horror</option>
-                <option value="Animation">Animation</option>
-                <option value="Adventure">Adventure</option>
-                <option value="Thriller">Thriller</option>
-              </select>
+              <span className="text-[11px] font-mono text-blue-600 dark:text-blue-400 font-semibold">
+                {formData.genres.length} selected
+              </span>
             </div>
-            <div>
-              <label className="block font-medium text-slate-700 dark:text-slate-300">
-                Rating (1 - 10)
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                min="0"
-                max="10"
-                value={formData.rating}
-                onChange={(e) =>
-                  setFormData({ ...formData, rating: Number(e.target.value) })
-                }
-                className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
-              />
+            <div className="flex flex-wrap gap-1.5 p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/60 max-h-32 overflow-y-auto">
+              {AVAILABLE_GENRES.map((g) => {
+                const selected = formData.genres.includes(g);
+                return (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => {
+                      if (selected) {
+                        const next = formData.genres.filter((item) => item !== g);
+                        setFormData({
+                          ...formData,
+                          genres: next.length > 0 ? next : [g],
+                        });
+                      } else {
+                        setFormData({
+                          ...formData,
+                          genres: [...formData.genres, g],
+                        });
+                      }
+                    }}
+                    className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-all cursor-pointer ${
+                      selected
+                        ? 'bg-blue-600 text-white font-semibold shadow-sm'
+                        : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                    }`}
+                  >
+                    {selected ? '✓ ' : '+ '}
+                    {g}
+                  </button>
+                );
+              })}
             </div>
+          </div>
+
+          <div>
+            <label className="block font-medium text-slate-700 dark:text-slate-300">
+              Rating (1 - 10)
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              max="10"
+              value={formData.rating}
+              onChange={(e) =>
+                setFormData({ ...formData, rating: Number(e.target.value) })
+              }
+              className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">

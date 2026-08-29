@@ -76,7 +76,7 @@ export class CatalogProvider implements OnModuleInit {
     const galleryUrls = dto.galleryUrls ?? (dto as any).gallery_urls ?? [];
     const directors = dto.directors ?? [];
     const cast = dto.cast ?? [];
-    const genreIds = dto.genreIds ?? (dto as any).genre_ids ?? [];
+    const genreIds = dto.genreIds ?? (dto as any).genre_ids ?? (dto as any).genres ?? [];
 
     return await lastValueFrom(
       this.moviesService.CreateMovie({
@@ -218,8 +218,8 @@ export class CatalogProvider implements OnModuleInit {
         gallery_urls: dto.galleryUrls ?? (dto as any).gallery_urls,
         directors: dto.directors,
         cast: dto.cast,
-        genreIds: dto.genreIds ?? (dto as any).genre_ids,
-        genre_ids: dto.genreIds ?? (dto as any).genre_ids,
+        genreIds: dto.genreIds ?? (dto as any).genre_ids ?? (dto as any).genres,
+        genre_ids: dto.genreIds ?? (dto as any).genre_ids ?? (dto as any).genres,
       }),
     );
   }

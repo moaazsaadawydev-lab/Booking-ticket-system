@@ -5,14 +5,31 @@ import DashboardShell from '../../../components/layout/DashboardShell';
 import Modal from '../../../components/ui/Modal';
 import Badge from '../../../components/ui/Badge';
 import { Showtime, Movie, Cinema, Auditorium } from '../../../lib/types';
-import apiClient, { extractList } from '../../../lib/api-client';
+import apiClient, {
+  extractList,
+  normalizeMovie,
+  normalizeCinema,
+  normalizeAuditorium,
+  normalizeShowtime,
+} from '../../../lib/api-client';
 import {
   Calendar,
   Plus,
   Film,
   Clock,
   AlertCircle,
+  Sparkles,
+  DollarSign,
+  Layers,
 } from 'lucide-react';
+
+const SEAT_TIER_META: Record<string, { label: string; desc: string; badge: string }> = {
+  REGULAR: { label: 'Regular / Standard', desc: 'Standard auditorium seating', badge: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
+  VIP: { label: 'VIP Lounge', desc: 'Plush recliners & waiter service', badge: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60' },
+  PREMIUM: { label: 'Premium / Prime', desc: 'Optimal central viewing angle', badge: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60' },
+  COUPLE: { label: 'Couple Sofa', desc: 'Double seat with privacy divider', badge: 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-400 border border-purple-200 dark:border-purple-900/60' },
+  WHEELCHAIR: { label: 'Accessible', desc: 'Wheelchair access & companion space', badge: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/60' },
+};
 
 export default function ShowtimesPage() {
   const [showtimes, setShowtimes] = useState<Showtime[]>([]);
@@ -24,7 +41,7 @@ export default function ShowtimesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form State
+  // Form State with Tiered Pricing Matrix
   const [formData, setFormData] = useState({
     movieId: '',
     cinemaId: '',
@@ -32,6 +49,13 @@ export default function ShowtimesPage() {
     startTime: new Date(Date.now() + 3600 * 1000).toISOString().slice(0, 16),
     endTime: new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 16),
     basePrice: 150,
+    tierPricings: {
+      REGULAR: 150,
+      VIP: 250,
+      PREMIUM: 200,
+      COUPLE: 300,
+      WHEELCHAIR: 150,
+    } as Record<string, number>,
   });
 
   const fetchData = async () => {
@@ -44,10 +68,15 @@ export default function ShowtimesPage() {
         apiClient.get('/auditoriums').catch(() => ({ data: { items: [] } })),
       ]);
 
-      const stList = extractList<Showtime>(stRes.data);
-      const mList = extractList<Movie>(moviesRes.data);
-      const cList = extractList<Cinema>(cinemasRes.data);
-      const aList = extractList<Auditorium>(audsRes.data);
+      const stRaw = extractList(stRes.data);
+      const mRaw = extractList(moviesRes.data);
+      const cRaw = extractList(cinemasRes.data);
+      const aRaw = extractList(audsRes.data);
+
+      const stList = stRaw.map(normalizeShowtime);
+      const mList = mRaw.map(normalizeMovie);
+      const cList = cRaw.map(normalizeCinema);
+      const aList = aRaw.map(normalizeAuditorium);
 
       setShowtimes(stList);
       setMovies(mList);
@@ -77,18 +106,52 @@ export default function ShowtimesPage() {
     fetchData();
   }, []);
 
+  const handleBasePriceChange = (val: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      basePrice: val,
+      tierPricings: {
+        REGULAR: val,
+        VIP: Math.round(val * 1.6),
+        PREMIUM: Math.round(val * 1.3),
+        COUPLE: Math.round(val * 2.0),
+        WHEELCHAIR: val,
+      },
+    }));
+  };
+
+  const handleTierPriceChange = (tier: string, val: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      tierPricings: {
+        ...prev.tierPricings,
+        [tier]: val,
+      },
+    }));
+  };
+
   const handleCreateShowtime = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
     try {
+      const selectedAud = auditoriums.find((a) => a.id === formData.auditoriumId);
+      const customPricings = Object.entries(formData.tierPricings)
+        .filter(([_, price]) => Number(price) > 0)
+        .map(([seatType, price]) => ({
+          seatType,
+          price: Number(price),
+        }));
+
       await apiClient.post('/showtimes', {
         movieId: formData.movieId,
         cinemaId: formData.cinemaId,
         auditoriumId: formData.auditoriumId,
         startTime: new Date(formData.startTime).toISOString(),
         endTime: new Date(formData.endTime).toISOString(),
+        experienceType: selectedAud?.experienceType || 'STANDARD_2D',
         basePrice: Number(formData.basePrice),
+        customPricings,
       });
       setIsModalOpen(false);
       await fetchData();
@@ -214,9 +277,37 @@ export default function ShowtimesPage() {
                       </td>
 
                       <td className="px-5 py-3.5">
-                        <span className="font-semibold text-slate-900 dark:text-slate-100">
-                          {Number(st.basePrice || 150).toFixed(2)} EGP
-                        </span>
+                        {(() => {
+                          const pricings = Array.isArray(st.seatPricings) ? st.seatPricings : [];
+                          const prices = pricings.map((p) => Number(p.price)).filter((p) => !isNaN(p) && p > 0);
+                          const minPrice = prices.length > 0 ? Math.min(...prices, Number(st.basePrice || 150)) : Number(st.basePrice || 150);
+                          const maxPrice = prices.length > 0 ? Math.max(...prices, Number(st.basePrice || 150)) : Number(st.basePrice || 150);
+                          const hasRange = minPrice !== maxPrice && prices.length > 1;
+
+                          return (
+                            <div>
+                              <div className="font-bold text-slate-900 dark:text-slate-100 font-mono text-xs">
+                                {hasRange ? `${minPrice.toFixed(0)} - ${maxPrice.toFixed(0)} EGP` : `${Number(st.basePrice || 150).toFixed(2)} EGP`}
+                              </div>
+                              {pricings.length > 0 && (
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {pricings.map((p, pIdx) => {
+                                    const meta = SEAT_TIER_META[p.seatType] || { label: p.seatType, badge: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300' };
+                                    return (
+                                      <span
+                                        key={pIdx}
+                                        className={`rounded px-1.5 py-0.2 text-[9px] font-mono font-medium ${meta.badge}`}
+                                        title={`${meta.label}: ${p.price} EGP`}
+                                      >
+                                        {p.seatType}: {p.price} EGP
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       <td className="px-5 py-3.5 text-right">
@@ -238,7 +329,8 @@ export default function ShowtimesPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title="Schedule Showtime"
-        subtitle="Select movie, venue hall, timeslot and ticket price"
+        subtitle="Select movie, venue hall, timeslot and configure tiered seat pricing"
+        maxWidth="2xl"
       >
         {error && (
           <div className="mb-4 flex items-center gap-2 rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 p-3 text-xs text-rose-700 dark:text-rose-300">
@@ -340,20 +432,70 @@ export default function ShowtimesPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block font-medium text-slate-700 dark:text-slate-300">
-              Base Ticket Price (EGP) *
-            </label>
-            <input
-              type="number"
-              required
-              min={10}
-              value={formData.basePrice}
-              onChange={(e) =>
-                setFormData({ ...formData, basePrice: Number(e.target.value) })
-              }
-              className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
-            />
+          {/* Dynamic Seat Tier Pricing Matrix */}
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 p-3.5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Layers className="h-4 w-4 text-blue-500" />
+                <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
+                  Tiered Seat Pricing Matrix
+                </span>
+              </div>
+              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                Custom pricing per seat category
+              </span>
+            </div>
+
+            <div>
+              <label className="block font-medium text-slate-700 dark:text-slate-300">
+                Default Base Ticket Price (EGP) *
+              </label>
+              <div className="relative mt-1">
+                <input
+                  type="number"
+                  required
+                  min={10}
+                  value={formData.basePrice}
+                  onChange={(e) => handleBasePriceChange(Number(e.target.value))}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-slate-900 dark:text-slate-100 font-mono focus:border-blue-500 focus:outline-none"
+                  placeholder="e.g. 150"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-800">
+              <span className="block text-[11px] font-mono font-medium text-slate-500 dark:text-slate-400">
+                Seat Category Price Breakdown:
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {Object.entries(SEAT_TIER_META).map(([tierKey, meta]) => {
+                  const currentVal = formData.tierPricings[tierKey] ?? formData.basePrice;
+                  return (
+                    <div
+                      key={tierKey}
+                      className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-2 shadow-2xs"
+                    >
+                      <div className="min-w-0 pr-2">
+                        <p className="font-medium text-[11px] text-slate-800 dark:text-slate-200 truncate">
+                          {meta.label}
+                        </p>
+                        <p className="text-[9px] text-slate-400 truncate font-mono">{tierKey}</p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <input
+                          type="number"
+                          min={0}
+                          value={currentVal}
+                          onChange={(e) => handleTierPriceChange(tierKey, Number(e.target.value))}
+                          className="w-20 rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1 text-right text-xs font-mono font-bold text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
+                        />
+                        <span className="text-[10px] font-mono text-slate-400">EGP</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           <div className="mt-5 flex justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">

@@ -36,12 +36,38 @@ export class CreateMovieProvider {
       slug = `${slug}-${Date.now().toString().slice(-6)}`;
     }
 
-    const genreIds = dto.genreIds ?? (dto as any).genre_ids ?? [];
+    const rawGenres = dto.genreIds ?? (dto as any).genre_ids ?? (dto as any).genres ?? [];
     let genres: Genre[] = [];
-    if (genreIds.length > 0) {
-      genres = await this.genreRepository.find({
-        where: { id: In(genreIds) },
-      });
+    if (rawGenres.length > 0) {
+      const isUUID = (str: string) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+      const uuidList: string[] = [];
+      const nameList: string[] = [];
+      for (const g of rawGenres) {
+        if (typeof g === 'string') {
+          const trimmed = g.trim();
+          if (isUUID(trimmed)) {
+            uuidList.push(trimmed);
+          } else {
+            nameList.push(trimmed);
+          }
+        }
+      }
+
+      const conditions: any[] = [];
+      if (uuidList.length > 0) {
+        conditions.push({ id: In(uuidList) });
+      }
+      if (nameList.length > 0) {
+        conditions.push({ name: In(nameList) });
+        conditions.push({ slug: In(nameList.map((n) => n.toLowerCase().trim())) });
+      }
+
+      if (conditions.length > 0) {
+        genres = await this.genreRepository.find({
+          where: conditions,
+        });
+      }
     }
 
     const movieId = randomUUID();

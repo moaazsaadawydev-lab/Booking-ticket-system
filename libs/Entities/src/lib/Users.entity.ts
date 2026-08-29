@@ -1,4 +1,7 @@
 import {
+  AfterLoad,
+  BeforeInsert,
+  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,
@@ -118,4 +121,21 @@ export class Users {
     onUpdate: TIMESTAMP,
   })
   updatedAt!: Date;
+
+  @AfterLoad()
+  @BeforeInsert()
+  @BeforeUpdate()
+  populateAvatarUrl() {
+    if (!this.avatarUrl && this.avatarKey) {
+      const baseUrl =
+        process.env['MEDIA_BASE_URL'] || 'http://localhost:3000/api/v1/media';
+      const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+      const cleanKey = this.avatarKey.startsWith('/')
+        ? this.avatarKey.slice(1)
+        : this.avatarKey;
+      this.avatarUrl = cleanKey.startsWith('http')
+        ? cleanKey
+        : `${cleanBase}/${cleanKey}`;
+    }
+  }
 }

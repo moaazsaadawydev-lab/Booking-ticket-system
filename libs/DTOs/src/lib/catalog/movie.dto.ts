@@ -101,10 +101,10 @@ export class CreateMovieDto {
   @IsString({ each: true })
   cast!: string[];
 
-  @Transform(({ obj }) => obj.genre_ids ?? obj.genreIds)
+  @Transform(({ obj }) => obj.genre_ids ?? obj.genreIds ?? obj.genres)
   @IsOptional()
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsString({ each: true })
   genreIds?: string[];
 }
 
@@ -197,10 +197,10 @@ export class UpdateMovieDto {
   @IsString({ each: true })
   cast?: string[];
 
-  @Transform(({ obj }) => obj.genre_ids ?? obj.genreIds)
+  @Transform(({ obj }) => obj.genre_ids ?? obj.genreIds ?? obj.genres)
   @IsOptional()
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsString({ each: true })
   genreIds?: string[];
 }
 

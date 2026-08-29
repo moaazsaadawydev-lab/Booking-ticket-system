@@ -68,6 +68,10 @@ export class RegistrationProvider {
       const userId = randomUUID();
       const tempKey = registerDto.tempObjectKey;
       const avatarKey = tempKey ? `avatars/${userId}.webp` : null;
+      const baseUrl =
+        process.env['MEDIA_BASE_URL'] || 'http://localhost:3000/api/v1/media';
+      const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+      const avatarUrl = avatarKey ? `${cleanBaseUrl}/${avatarKey}` : null;
 
       const user = queryRunner.manager.create(Users, {
         id: userId,
@@ -78,6 +82,7 @@ export class RegistrationProvider {
         gender: registerDto.gender as UserGender,
         country: registerDto.country as Country,
         avatarKey: avatarKey,
+        avatarUrl: avatarUrl,
         status: UserStatus.UNVERIFIED,
       });
 
