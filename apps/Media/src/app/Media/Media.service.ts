@@ -13,6 +13,48 @@ export class MediaService {
     private readonly minioService: MinioService,
   ) {}
 
+  private extractCropOptions(data: any) {
+    const parseNum = (val: any) =>
+      val !== undefined && val !== null && val !== '' && !isNaN(Number(val))
+        ? Number(val)
+        : undefined;
+
+    const cropObj = data?.crop || {};
+    const cropX = parseNum(data?.cropX ?? data?.crop_x ?? cropObj.cropX ?? cropObj.x);
+    const cropY = parseNum(data?.cropY ?? data?.crop_y ?? cropObj.cropY ?? cropObj.y);
+    const cropWidth = parseNum(
+      data?.cropWidth ?? data?.crop_width ?? cropObj.cropWidth ?? cropObj.width,
+    );
+    const cropHeight = parseNum(
+      data?.cropHeight ?? data?.crop_height ?? cropObj.cropHeight ?? cropObj.height,
+    );
+    const cropZoom = parseNum(
+      data?.cropZoom ?? data?.crop_zoom ?? cropObj.cropZoom ?? cropObj.zoom,
+    );
+
+    if (
+      cropX !== undefined ||
+      cropY !== undefined ||
+      cropWidth !== undefined ||
+      cropHeight !== undefined
+    ) {
+      return {
+        cropX,
+        cropY,
+        cropWidth,
+        cropHeight,
+        cropZoom,
+        x: cropX,
+        y: cropY,
+        width: cropWidth,
+        height: cropHeight,
+        zoom: cropZoom,
+      };
+    }
+
+    return undefined;
+  }
+
   async processAndSaveProfilePhoto(data: any) {
     Logger.log('media data', data);
     const tempKey = data.tempObjectKey;
@@ -28,26 +70,7 @@ export class MediaService {
 
     if (!alreadyProcessed) {
       const rawBuffer = await this.minioService.getBuffer(tempKey);
-
-      const crop =
-        data.cropX !== undefined ||
-        data.cropY !== undefined ||
-        data.cropWidth !== undefined ||
-        data.cropHeight !== undefined ||
-        data.cropZoom !== undefined
-          ? {
-              cropX: data.cropX,
-              cropY: data.cropY,
-              cropWidth: data.cropWidth,
-              cropHeight: data.cropHeight,
-              cropZoom: data.cropZoom,
-              x: data.cropX,
-              y: data.cropY,
-              width: data.cropWidth,
-              height: data.cropHeight,
-              zoom: data.cropZoom,
-            }
-          : data.crop;
+      const crop = this.extractCropOptions(data);
 
       const { buffer } = await this.imageProcessor.processImageByProfile(
         rawBuffer,
@@ -91,11 +114,12 @@ export class MediaService {
     }
 
     const rawBuffer = await this.minioService.getBuffer(tempKey);
+    const crop = this.extractCropOptions(data);
 
     const { buffer } = await this.imageProcessor.processImageByProfile(
       rawBuffer,
       data.profileType || ImageProfileType.AVATAR,
-      data.crop,
+      crop,
     );
 
     await this.minioService.uploadBuffer(buffer, finalKey, 'image/webp');

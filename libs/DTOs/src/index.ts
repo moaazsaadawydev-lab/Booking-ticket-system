@@ -23,3 +23,6 @@ export * from './lib/catalog/showtime.dto';
 export * from './lib/catalog/validators/is-url-or-temp-key.decorator';
 export * from './lib/booking/booking.dto';
 export * from './lib/payment/payment.dto';
+export * from './lib/CreateStaff.dto';
+export * from './lib/SetupPassword.dto';
+

@@ -14,3 +14,7 @@ export * from './admin/update-user-status.provider';
 export * from './admin/update-user-role.provider';
 export * from './auth/logout.provider';
 export * from './auth/google-login.provider';
+export * from './admin/create-staff.provider';
+export * from './admin/list-users.provider';
+export * from './auth/setup-password.provider';
+

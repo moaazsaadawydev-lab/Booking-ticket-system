@@ -14,8 +14,11 @@ export interface User {
   email: string;
   role: UserRole;
   cinemaId?: string | null;
-  status: 'ACTIVE' | 'UNVERIFIED' | 'SUSPENDED' | 'BLOCKED';
+  status: 'ACTIVE' | 'UNVERIFIED' | 'PENDING_ACTIVATION' | 'SUSPENDED' | 'BLOCKED';
   avatarUrl?: string | null;
+  avatarKey?: string | null;
+  phoneNumber?: string | null;
+  createdBy?: string | null;
   createdAt: string;
 }
 

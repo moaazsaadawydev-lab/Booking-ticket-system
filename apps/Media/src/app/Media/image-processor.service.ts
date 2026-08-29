@@ -33,16 +33,21 @@ export class ImageProcessorService {
       const imgWidth = metadata.width || 0;
       const imgHeight = metadata.height || 0;
 
-      const cropX = crop?.cropX ?? crop?.x;
-      const cropY = crop?.cropY ?? crop?.y;
-      const cropWidth = crop?.cropWidth ?? crop?.width;
-      const cropHeight = crop?.cropHeight ?? crop?.height;
+      const parseNum = (val: any) =>
+        val !== undefined && val !== null && val !== '' && !isNaN(Number(val))
+          ? Number(val)
+          : undefined;
+
+      const cropX = parseNum(crop?.cropX ?? crop?.x);
+      const cropY = parseNum(crop?.cropY ?? crop?.y);
+      const cropWidth = parseNum(crop?.cropWidth ?? crop?.width);
+      const cropHeight = parseNum(crop?.cropHeight ?? crop?.height);
 
       if (
-        typeof cropX === 'number' &&
-        typeof cropY === 'number' &&
-        typeof cropWidth === 'number' &&
-        typeof cropHeight === 'number' &&
+        cropX !== undefined &&
+        cropY !== undefined &&
+        cropWidth !== undefined &&
+        cropHeight !== undefined &&
         cropWidth > 0 &&
         cropHeight > 0 &&
         imgWidth > 0 &&

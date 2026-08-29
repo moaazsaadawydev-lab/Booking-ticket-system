@@ -33,6 +33,9 @@ import {
   UpdateUserRoleProvider,
   LogoutProvider,
   GoogleLoginProvider,
+  CreateStaffProvider,
+  ListUsersProvider,
+  SetupPasswordProvider,
 } from './Providers';
 
 @Module({
@@ -108,6 +111,9 @@ import {
     UpdateUserRoleProvider,
     LogoutProvider,
     GoogleLoginProvider,
+    CreateStaffProvider,
+    ListUsersProvider,
+    SetupPasswordProvider,
     SanitizeUserInterceptor,
   ],
   exports: [
@@ -129,6 +135,9 @@ import {
     UpdateUserRoleProvider,
     LogoutProvider,
     GoogleLoginProvider,
+    CreateStaffProvider,
+    ListUsersProvider,
+    SetupPasswordProvider,
     SanitizeUserInterceptor,
   ],
 })

@@ -25,18 +25,26 @@ export class RegistrationProvider implements OnModuleInit {
   }
 
   async register(body: RegisterDto, file?: Express.Multer.File) {
-    const cropFields = [
-      body.cropX,
-      body.cropY,
-      body.cropWidth,
-      body.cropHeight,
-      body.cropZoom,
-    ];
-    const isCropMissing = cropFields.every((v) => v === undefined || v === null);
+    const parseNum = (val: any) =>
+      val !== undefined && val !== null && val !== '' && !isNaN(Number(val))
+        ? Number(val)
+        : undefined;
+
+    const cropX = parseNum(body.cropX ?? (body as any).crop_x);
+    const cropY = parseNum(body.cropY ?? (body as any).crop_y);
+    const cropWidth = parseNum(body.cropWidth ?? (body as any).crop_width);
+    const cropHeight = parseNum(body.cropHeight ?? (body as any).crop_height);
+    const cropZoom = parseNum(body.cropZoom ?? (body as any).crop_zoom);
+
+    const isCropMissing =
+      cropX === undefined ||
+      cropY === undefined ||
+      cropWidth === undefined ||
+      cropHeight === undefined;
 
     if (file && isCropMissing) {
       Logger.log('Crop parameters are required');
-      throw new BadRequestException('Crop parameters are required');
+      throw new BadRequestException('Crop parameters (cropX, cropY, cropWidth, cropHeight) are required when uploading avatar');
     }
 
     let objectKey: string | null = null;
@@ -61,6 +69,16 @@ export class RegistrationProvider implements OnModuleInit {
         ...body,
         birth_date: body.birthDate || (body as any).birth_date,
         temp_object_key: objectKey,
+        cropX,
+        cropY,
+        cropWidth,
+        cropHeight,
+        cropZoom,
+        crop_x: cropX,
+        crop_y: cropY,
+        crop_width: cropWidth,
+        crop_height: cropHeight,
+        crop_zoom: cropZoom,
       };
 
       Logger.log('registerPayload', registerPayload);

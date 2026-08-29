@@ -20,6 +20,8 @@ import {
   ResendVerificationCodeDto,
   UpdateUserStatusDto,
   UpdateUserRoleDto,
+  CreateStaffDto,
+  SetupPasswordDto,
 } from '@booking-ticket-system/DTOs';
 import { Users } from '@booking-ticket-system/Entities';
 
@@ -403,6 +405,76 @@ export class AuthProvider implements OnModuleInit {
       message: 'Google authentication successful',
       accessToken,
       refreshToken,
+    };
+  }
+
+  async createStaff(body: CreateStaffDto, actor: any) {
+    const result: any = await lastValueFrom(
+      this.usersService.CreateStaff({
+        full_name: body.fullName,
+        email: body.email,
+        phone_number: body.phoneNumber,
+        birth_date: body.birthDate ? String(body.birthDate) : undefined,
+        role: body.role,
+        cinema_id: body.cinemaId,
+        admin_password: body.adminPassword,
+        actor_id: actor?.id,
+        actor_role: actor?.role,
+      }),
+    );
+
+    return {
+      success: result.success ?? true,
+      message: result.message || 'Staff member invited successfully',
+      userId: result.userId || result.user_id,
+      email: result.email,
+      fullName: result.fullName || result.full_name,
+      role: result.role,
+      cinemaId: result.cinemaId || result.cinema_id,
+      status: result.status,
+      createdBy: result.createdBy || result.created_by,
+      invitationToken: result.invitationToken || result.invitation_token,
+    };
+  }
+
+  async setupPassword(body: SetupPasswordDto) {
+    const result: any = await lastValueFrom(
+      this.usersService.SetupPassword({
+        token: body.token,
+        password: body.password,
+      }),
+    );
+
+    return {
+      success: result?.success ?? true,
+      message:
+        result?.message ||
+        'Password configured successfully. Account is now active.',
+    };
+  }
+
+  async listUsers(query: {
+    search?: string;
+    role?: string;
+    cinemaId?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const result: any = await lastValueFrom(
+      this.usersService.ListUsers({
+        search: query.search,
+        role: query.role,
+        cinema_id: query.cinemaId,
+        page: query.page ? Number(query.page) : undefined,
+        limit: query.limit ? Number(query.limit) : undefined,
+      }),
+    );
+
+    return {
+      items: result.users || [],
+      total: result.total || (result.users ? result.users.length : 0),
+      page: result.page || 1,
+      limit: result.limit || 50,
     };
   }
 }

@@ -70,6 +70,17 @@ export class UpdateUserProvider {
         user.avatarKey = newAvatarKey;
         user.avatarUrl = `${cleanBaseUrl}/${newAvatarKey}`;
 
+        const parseNum = (val: any) =>
+          val !== undefined && val !== null && val !== '' && !isNaN(Number(val))
+            ? Number(val)
+            : undefined;
+
+        const pCropX = parseNum(cropX ?? (updateDto as any).crop_x);
+        const pCropY = parseNum(cropY ?? (updateDto as any).crop_y);
+        const pCropWidth = parseNum(cropWidth ?? (updateDto as any).crop_width);
+        const pCropHeight = parseNum(cropHeight ?? (updateDto as any).crop_height);
+        const pCropZoom = parseNum(cropZoom ?? (updateDto as any).crop_zoom);
+
         await queryRunner.manager.save(
           queryRunner.manager.create(OutboxMessage, {
             eventType: 'USER_PROFILE_PHOTO_UPDATED',
@@ -78,11 +89,23 @@ export class UpdateUserProvider {
               oldAvatarKey,
               tempKey,
               finalKey: newAvatarKey,
-              cropX,
-              cropY,
-              cropWidth,
-              cropHeight,
-              cropZoom,
+              cropX: pCropX,
+              cropY: pCropY,
+              cropWidth: pCropWidth,
+              cropHeight: pCropHeight,
+              cropZoom: pCropZoom,
+              crop: {
+                cropX: pCropX,
+                cropY: pCropY,
+                cropWidth: pCropWidth,
+                cropHeight: pCropHeight,
+                cropZoom: pCropZoom,
+                x: pCropX,
+                y: pCropY,
+                width: pCropWidth,
+                height: pCropHeight,
+                zoom: pCropZoom,
+              },
             },
           }),
         );

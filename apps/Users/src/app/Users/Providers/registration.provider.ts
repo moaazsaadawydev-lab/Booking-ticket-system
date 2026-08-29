@@ -106,6 +106,23 @@ export class RegistrationProvider {
       );
 
       if (tempKey) {
+        const parseNum = (val: any) =>
+          val !== undefined && val !== null && val !== '' && !isNaN(Number(val))
+            ? Number(val)
+            : undefined;
+
+        const cropX = parseNum(registerDto.cropX ?? (registerDto as any).crop_x);
+        const cropY = parseNum(registerDto.cropY ?? (registerDto as any).crop_y);
+        const cropWidth = parseNum(
+          registerDto.cropWidth ?? (registerDto as any).crop_width,
+        );
+        const cropHeight = parseNum(
+          registerDto.cropHeight ?? (registerDto as any).crop_height,
+        );
+        const cropZoom = parseNum(
+          registerDto.cropZoom ?? (registerDto as any).crop_zoom,
+        );
+
         await queryRunner.manager.save(
           queryRunner.manager.create(OutboxMessage, {
             eventType: UserOutboxEvent.PROCESS_PROFILE_PHOTO,
@@ -114,13 +131,23 @@ export class RegistrationProvider {
               tempObjectKey: tempKey,
               finalKey: `avatars/${user.id}.webp`,
               profileType: ImageProfileType.AVATAR,
-              cropX: registerDto.cropX ?? (registerDto as any).crop_x,
-              cropY: registerDto.cropY ?? (registerDto as any).crop_y,
-              cropWidth:
-                registerDto.cropWidth ?? (registerDto as any).crop_width,
-              cropHeight:
-                registerDto.cropHeight ?? (registerDto as any).crop_height,
-              cropZoom: registerDto.cropZoom ?? (registerDto as any).crop_zoom,
+              cropX,
+              cropY,
+              cropWidth,
+              cropHeight,
+              cropZoom,
+              crop: {
+                cropX,
+                cropY,
+                cropWidth,
+                cropHeight,
+                cropZoom,
+                x: cropX,
+                y: cropY,
+                width: cropWidth,
+                height: cropHeight,
+                zoom: cropZoom,
+              },
             },
           }),
         );

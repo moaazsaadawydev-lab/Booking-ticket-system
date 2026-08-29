@@ -21,6 +21,9 @@ service UsersService {
   rpc UpdateUserRole(UpdateUserRoleRequest) returns (UpdateUserRoleResponse) {}
   rpc Logout(LogoutRequest) returns (LogoutResponse) {}
   rpc GoogleLogin(GoogleLoginRequest) returns (LoginResponse) {}
+  rpc CreateStaff(CreateStaffRequest) returns (CreateStaffResponse) {}
+  rpc SetupPassword(SetupPasswordRequest) returns (SetupPasswordResponse) {}
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {}
 }
 
 enum UserStatus {
@@ -276,3 +279,68 @@ message GoogleLoginRequest {
   optional string user_agent = 6;
   optional string ip_address = 7;
 }
+
+message CreateStaffRequest {
+  string full_name = 1;
+  string email = 2;
+  optional string phone_number = 3;
+  optional string birth_date = 4;
+  string role = 5;
+  optional string cinema_id = 6;
+  string admin_password = 7;
+  string actor_id = 8;
+  string actor_role = 9;
+}
+
+message CreateStaffResponse {
+  bool success = 1;
+  string message = 2;
+  string user_id = 3;
+  string email = 4;
+  string full_name = 5;
+  string role = 6;
+  optional string cinema_id = 7;
+  string status = 8;
+  string created_by = 9;
+  optional string invitation_token = 10;
+}
+
+message SetupPasswordRequest {
+  string token = 1;
+  string password = 2;
+}
+
+message SetupPasswordResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ListUsersRequest {
+  optional string search = 1;
+  optional string role = 2;
+  optional string cinema_id = 3;
+  optional int32 page = 4;
+  optional int32 limit = 5;
+}
+
+message UserItem {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  string role = 4;
+  optional string cinema_id = 5;
+  string status = 6;
+  optional string avatar_url = 7;
+  optional string created_by = 8;
+  optional string created_at = 9;
+  optional string phone_number = 10;
+}
+
+message ListUsersResponse {
+  repeated UserItem users = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+

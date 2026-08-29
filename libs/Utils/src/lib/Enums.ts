@@ -16,6 +16,7 @@ export enum UserRole {
 
 export enum UserStatus {
   UNVERIFIED = 'UNVERIFIED',
+  PENDING_ACTIVATION = 'PENDING_ACTIVATION',
   ACTIVE = 'ACTIVE',
   SUSPENDED = 'SUSPENDED',
   BLOCKED = 'BLOCKED',

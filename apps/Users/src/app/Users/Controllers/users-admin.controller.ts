@@ -4,6 +4,8 @@ import { SanitizeUserInterceptor } from '@booking-ticket-system/Common';
 import { UserStatus } from '@booking-ticket-system/Utils';
 import { UpdateUserStatusPayload } from '@booking-ticket-system/Interfaces';
 import {
+  CreateStaffProvider,
+  ListUsersProvider,
   UpdateUserRoleProvider,
   UpdateUserStatusProvider,
 } from '../Providers';
@@ -14,7 +16,35 @@ export class UsersAdminController {
   constructor(
     private readonly updateUserStatusProvider: UpdateUserStatusProvider,
     private readonly updateUserRoleProvider: UpdateUserRoleProvider,
+    private readonly createStaffProvider: CreateStaffProvider,
+    private readonly listUsersProvider: ListUsersProvider,
   ) {}
+
+  @GrpcMethod('UsersService', 'ListUsers')
+  async listUsers(@Payload() data: any) {
+    return await this.listUsersProvider.execute({
+      search: data?.search,
+      role: data?.role,
+      cinemaId: data?.cinemaId || data?.cinema_id,
+      page: data?.page,
+      limit: data?.limit,
+    });
+  }
+
+  @GrpcMethod('UsersService', 'CreateStaff')
+  async createStaff(@Payload() data: any) {
+    return await this.createStaffProvider.execute({
+      fullName: data.fullName || data.full_name || data.name,
+      email: data.email,
+      phoneNumber: data.phoneNumber || data.phone_number,
+      birthDate: data.birthDate || data.birth_date,
+      role: data.role,
+      cinemaId: data.cinemaId || data.cinema_id,
+      adminPassword: data.adminPassword || data.admin_password,
+      actorId: data.actorId || data.actor_id,
+      actorRole: data.actorRole || data.actor_role,
+    });
+  }
 
   @GrpcMethod('UsersService', 'UpdateUserStatus')
   async updateUserStatus(@Payload() data: any): Promise<{

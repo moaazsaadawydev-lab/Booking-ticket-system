@@ -12,6 +12,7 @@ import {
   AuthProvider,
   GoogleLoginProvider,
   LogoutProvider,
+  SetupPasswordProvider,
 } from '../Providers';
 
 @Controller()
@@ -21,7 +22,15 @@ export class UsersAuthController {
     private readonly authProvider: AuthProvider,
     private readonly googleLoginProvider: GoogleLoginProvider,
     private readonly logoutProvider: LogoutProvider,
+    private readonly setupPasswordProvider: SetupPasswordProvider,
   ) {}
+
+  @GrpcMethod('UsersService', 'SetupPassword')
+  async setupPassword(@Payload() data: any): Promise<{ success: boolean; message: string }> {
+    const token = data?.token;
+    const password = data?.password;
+    return await this.setupPasswordProvider.execute({ token, password });
+  }
 
   @GrpcMethod('UsersService', 'Login')
   async login(@Payload() data: any): Promise<AuthTokensResponse> {

@@ -14,7 +14,7 @@ import {
 import { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
-import { LoginDto } from '@booking-ticket-system/DTOs';
+import { LoginDto, SetupPasswordDto } from '@booking-ticket-system/DTOs';
 import { JwtAuthGuard } from '@booking-ticket-system/Guards';
 import { CurrentUser } from '@booking-ticket-system/Decorators';
 import { TransformResponseInterceptor } from '@booking-ticket-system/Common';
@@ -27,6 +27,12 @@ export class UsersAuthController {
     private readonly authProvider: AuthProvider,
     private readonly configService: ConfigService,
   ) {}
+
+  @Post('setup-password')
+  @HttpCode(HttpStatus.OK)
+  async setupPassword(@Body() body: SetupPasswordDto) {
+    return this.authProvider.setupPassword(body);
+  }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)

@@ -103,6 +103,19 @@ export class Users {
   @Column({ type: 'timestamp', nullable: true, default: null })
   passwordChangedAt!: Date | null;
 
+  @Column({ type: 'varchar', length: 50, nullable: true, default: null })
+  phoneNumber!: string | null;
+
+  @Column({ type: 'uuid', nullable: true, default: null })
+  createdBy!: string | null;
+
+  @Index()
+  @Column({ type: 'varchar', length: 255, nullable: true, default: null })
+  invitationTokenHash!: string | null;
+
+  @Column({ type: 'timestamp', nullable: true, default: null })
+  invitationExpiresAt!: Date | null;
+
   @Column({ type: 'boolean', default: false, nullable: false })
   mustChangePassword!: boolean;
 
