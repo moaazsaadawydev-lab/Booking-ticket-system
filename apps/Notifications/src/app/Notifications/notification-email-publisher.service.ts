@@ -56,7 +56,9 @@ export class NotificationEmailPublisherService implements OnModuleInit {
                       ? notification.title || 'Security Notice: Email Address Changed'
                       : notification.emailTemplate === 'AccountRecoveredAlert'
                         ? notification.title || 'Account Restored Successfully'
-                        : notification.title || 'Activate Your Account - Aflamak';
+                        : notification.emailTemplate === 'StaffInvitation'
+                          ? notification.title || 'Welcome to Aflamak - Staff Invitation'
+                          : notification.title || 'Activate Your Account - Aflamak';
 
         let attachments: any[] | undefined = undefined;
         if (

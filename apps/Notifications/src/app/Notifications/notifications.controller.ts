@@ -989,6 +989,79 @@ export class NotificationController {
       channel.nack(originalMsg, false, !isRedelivered);
     }
   }
+
+  @EventPattern('staff.invitation.created')
+  async handleStaffInvitationCreated(
+    @Payload()
+    data: {
+      userId: string;
+      email: string;
+      fullName: string;
+      invitationToken: string;
+      role: string;
+      cinemaId?: string;
+      createdBy?: string;
+      eventId?: string;
+      sourceEventId?: string;
+    },
+    @Ctx() context: RmqContext,
+  ) {
+    const channel = context.getChannelRef();
+    const originalMsg = context.getMessage();
+    const sourceEventId = data.sourceEventId || data.eventId;
+
+    this.logger.log(
+      `[NotificationsService] 📩 Received staff.invitation.created for ${data.email} (${data.role})`,
+    );
+
+    const adminDashboardUrl =
+      process.env['ADMIN_DASHBOARD_URL'] || 'http://localhost:3002';
+    // const cleanAdminUrl = adminDashboardUrl.endsWith('/')
+    //   ? adminDashboardUrl.slice(0, -1)
+    //   : adminDashboardUrl;
+    const setupPasswordLink = `${adminDashboardUrl}/auth/setup-password?token=${data.invitationToken}`;
+
+    const notificationDto: NotificationDto = {
+      UserId: data.userId,
+      title: 'Welcome to Aflamak - Staff Invitation',
+      body: `You have been invited as ${data.role}. Please setup your password via the link sent to your email.`,
+      type: NotificationType.ALERT_MESSAGE,
+    };
+
+    try {
+      await this.NotificationsService.createNotification(
+        notificationDto,
+        {
+          email: data.email,
+          template: 'StaffInvitation',
+          context: {
+            name: data.fullName || 'Staff Member',
+            role: data.role ? data.role.replace('_', ' ').toUpperCase() : 'Staff',
+            setupPasswordLink,
+          },
+        },
+        sourceEventId,
+      );
+
+      channel.ack(originalMsg);
+    } catch (error: any) {
+      if (error?.code === '23505') {
+        this.logger.warn(
+          `Unique constraint violation (23505) for event ${sourceEventId}. Treating as already processed.`,
+        );
+        channel.ack(originalMsg);
+        return;
+      }
+
+      this.logger.error(
+        `Failed to process staff.invitation.created event for ${data.email}: ${error.message}`,
+        error.stack,
+      );
+
+      const isRedelivered = originalMsg.fields.redelivered;
+      channel.nack(originalMsg, false, !isRedelivered);
+    }
+  }
 }
 
 

@@ -45,8 +45,7 @@ export default function UsersManagementPage() {
   const [inviteRole, setInviteRole] = useState<UserRole>('cinema_admin');
   const [inviteCinemaId, setInviteCinemaId] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
-  const [generatedInviteToken, setGeneratedInviteToken] = useState<string | null>(null);
-  const [copiedToken, setCopiedToken] = useState(false);
+  const [isInviteSubmitted, setIsInviteSubmitted] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,8 +138,7 @@ export default function UsersManagementPage() {
     setInviteRole('cinema_admin');
     setInviteCinemaId(cinemas[0]?.id || '');
     setAdminPassword('');
-    setGeneratedInviteToken(null);
-    setCopiedToken(false);
+    setIsInviteSubmitted(false);
     setError(null);
     setSuccessMsg(null);
     setIsInviteModalOpen(true);
@@ -156,7 +154,7 @@ export default function UsersManagementPage() {
     const requiresBranch = ['cinema_admin', 'staff', 'gate_checker'].includes(inviteRole);
 
     try {
-      const res = await apiClient.post('/users/staff', {
+      await apiClient.post('/users/staff', {
         fullName: inviteFullName,
         email: inviteEmail,
         phoneNumber: invitePhoneNumber || undefined,
@@ -166,12 +164,10 @@ export default function UsersManagementPage() {
         adminPassword: adminPassword,
       });
 
-      const responseData = res.data?.data || res.data;
-      const userObj = responseData?.user || responseData;
-      const token = userObj?.invitationToken || responseData?.invitationToken;
-
-      setGeneratedInviteToken(token || null);
-      setSuccessMsg(`Staff invitation created successfully for ${inviteEmail}!`);
+      setIsInviteSubmitted(true);
+      setSuccessMsg(
+        `Staff invitation created successfully. An activation link has been dispatched to ${inviteEmail}.`,
+      );
       fetchData();
     } catch (err: any) {
       setError(
@@ -410,200 +406,185 @@ export default function UsersManagementPage() {
         title="Invite New Cinema Staff Member"
         subtitle="Onboard a manager, accountant, or ticket gate checker with branch-level scoping"
       >
-        {error && (
-          <div className="mb-4 flex items-center gap-2 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 p-3 text-xs text-rose-700 dark:text-rose-300">
-            <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {successMsg && (
-          <div className="mb-4 space-y-2 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/40 p-3 text-xs text-emerald-700 dark:text-emerald-300">
-            <div className="flex items-center gap-2 font-semibold">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span>{successMsg}</span>
+        {isInviteSubmitted ? (
+          <div className="space-y-4 py-2 text-xs">
+            <div className="flex items-center gap-3 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/40 p-4 text-emerald-700 dark:text-emerald-300">
+              <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+              <div>
+                <p className="font-semibold text-sm">Invitation Dispatched!</p>
+                <p className="mt-0.5 text-xs text-emerald-600 dark:text-emerald-400">
+                  An invitation link has been dispatched to <strong>{inviteEmail}</strong>. The staff member can complete their password setup via the link provided in the email.
+                </p>
+              </div>
             </div>
 
-            {generatedInviteToken && (
-              <div className="mt-2 rounded-lg bg-white/70 dark:bg-black/40 p-2.5 border border-emerald-300 dark:border-emerald-800">
-                <p className="font-medium text-slate-700 dark:text-slate-300 text-[11px] mb-1">
-                  Activation Token (Simulated link for verification):
-                </p>
-                <div className="flex items-center justify-between gap-2 bg-slate-100 dark:bg-slate-900 px-2 py-1.5 rounded font-mono text-[10px] break-all">
-                  <span className="text-slate-900 dark:text-slate-100">{generatedInviteToken}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(generatedInviteToken);
-                      setCopiedToken(true);
-                      setTimeout(() => setCopiedToken(false), 2000);
-                    }}
-                    className="shrink-0 p-1 hover:text-emerald-500"
-                    title="Copy token"
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                {copiedToken && <p className="text-[10px] text-emerald-600 mt-1">Copied to clipboard!</p>}
+            <div className="flex justify-end pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsInviteModalOpen(false);
+                  fetchData();
+                }}
+                className="rounded-xl bg-slate-900 dark:bg-slate-100 dark:text-slate-900 text-white px-5 py-2 font-semibold hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {error && (
+              <div className="mb-4 flex items-center gap-2 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 p-3 text-xs text-rose-700 dark:text-rose-300">
+                <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
+                <span>{error}</span>
               </div>
             )}
-          </div>
-        )}
 
-        {!generatedInviteToken ? (
-          <form onSubmit={handleInviteStaff} className="space-y-3.5 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={inviteFullName}
-                  onChange={(e) => setInviteFullName(e.target.value)}
-                  placeholder="e.g. Ahmed Mahmoud"
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-slate-900 dark:text-slate-100 focus:border-red-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Email Address *
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="e.g. manager@cinema.com"
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-slate-900 dark:text-slate-100 focus:border-red-500 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Phone Number (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={invitePhoneNumber}
-                  onChange={(e) => setInvitePhoneNumber(e.target.value)}
-                  placeholder="+201001234567"
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-slate-900 dark:text-slate-100 focus:border-red-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Birth Date (Optional)
-                </label>
-                <input
-                  type="date"
-                  value={inviteBirthDate}
-                  onChange={(e) => setInviteBirthDate(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-slate-900 dark:text-slate-100 focus:border-red-500 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Staff Role *
-                </label>
-                <select
-                  required
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value as UserRole)}
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-slate-900 dark:text-slate-100 focus:border-red-500 focus:outline-none"
-                >
-                  <option value="cinema_admin">Cinema Admin (Branch Manager)</option>
-                  <option value="gate_checker">Gate Checker (Ticket Scanner)</option>
-                  <option value="staff">Staff (Theater Attendant)</option>
-                  <option value="accountant">Accountant (Financial Auditor)</option>
-                  <option value="marketing">Marketing (Promotions Specialist)</option>
-                  <option value="admin">Admin (System Co-Admin)</option>
-                  {currentRole === 'super_admin' && (
-                    <option value="super_admin">Super Admin (Global Authority)</option>
-                  )}
-                </select>
-              </div>
-
-              {['cinema_admin', 'staff', 'gate_checker'].includes(inviteRole) && (
+            <form onSubmit={handleInviteStaff} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Assigned Cinema Branch *
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={inviteFullName}
+                    onChange={(e) => setInviteFullName(e.target.value)}
+                    placeholder="e.g. Ahmed Mahmoud"
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-slate-900 dark:text-slate-100 focus:border-red-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="e.g. manager@cinema.com"
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-slate-900 dark:text-slate-100 focus:border-red-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Phone Number (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={invitePhoneNumber}
+                    onChange={(e) => setInvitePhoneNumber(e.target.value)}
+                    placeholder="+201001234567"
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-slate-900 dark:text-slate-100 focus:border-red-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Birth Date (Optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={inviteBirthDate}
+                    onChange={(e) => setInviteBirthDate(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-slate-900 dark:text-slate-100 focus:border-red-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Staff Role *
                   </label>
                   <select
                     required
-                    value={inviteCinemaId}
-                    onChange={(e) => setInviteCinemaId(e.target.value)}
+                    value={inviteRole}
+                    onChange={(e) => setInviteRole(e.target.value as UserRole)}
                     className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-slate-900 dark:text-slate-100 focus:border-red-500 focus:outline-none"
                   >
-                    {safeCinemas.length === 0 ? (
-                      <option value="">No branches created yet</option>
-                    ) : (
-                      safeCinemas.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} ({c.city})
-                        </option>
-                      ))
+                    <option value="cinema_admin">Cinema Admin (Branch Manager)</option>
+                    <option value="gate_checker">Gate Checker (Ticket Scanner)</option>
+                    <option value="staff">Staff (Theater Attendant)</option>
+                    <option value="accountant">Accountant (Financial Auditor)</option>
+                    <option value="marketing">Marketing (Promotions Specialist)</option>
+                    <option value="admin">Admin (System Co-Admin)</option>
+                    {currentRole === 'super_admin' && (
+                      <option value="super_admin">Super Admin (Global Authority)</option>
                     )}
                   </select>
                 </div>
-              )}
-            </div>
 
-            {/* Sudo Password Confirmation */}
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-              <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Admin Confirmation Password (Sudo Mode) *
-              </label>
-              <div className="relative">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="password"
-                  required
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  placeholder="Enter your current account password to authorize"
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 py-2.5 pl-9 pr-3 text-slate-900 dark:text-slate-100 focus:border-red-500 focus:outline-none"
-                />
+                {['cinema_admin', 'staff', 'gate_checker'].includes(inviteRole) && (
+                  <div>
+                    <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Assigned Cinema Branch *
+                    </label>
+                    <select
+                      required
+                      value={inviteCinemaId}
+                      onChange={(e) => setInviteCinemaId(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-slate-900 dark:text-slate-100 focus:border-red-500 focus:outline-none"
+                    >
+                      {safeCinemas.length === 0 ? (
+                        <option value="">No branches created yet</option>
+                      ) : (
+                        safeCinemas.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name} ({c.city})
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+                )}
               </div>
-              <p className="mt-1 text-[11px] text-slate-400">
-                Security safeguard protected by sliding-window rate limiting.
-              </p>
-            </div>
 
-            <div className="mt-5 flex justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setIsInviteModalOpen(false)}
-                className="rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-2 font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="rounded-xl bg-gradient-to-r from-red-600 to-rose-600 px-5 py-2 font-semibold text-white shadow-sm shadow-red-600/30 hover:from-red-500 hover:to-rose-500 disabled:opacity-60 transition-all cursor-pointer"
-              >
-                {saving ? 'Creating Staff Account...' : 'Send Staff Invitation'}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <div className="mt-4 flex justify-end">
-            <button
-              onClick={() => setIsInviteModalOpen(false)}
-              className="rounded-xl bg-slate-900 dark:bg-slate-100 dark:text-slate-900 text-white px-5 py-2 font-semibold hover:opacity-90 transition-opacity"
-            >
-              Done
-            </button>
-          </div>
+              {/* Sudo Password Confirmation */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <label className="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Admin Confirmation Password (Sudo Mode) *
+                </label>
+                <div className="relative">
+                  <Lock className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="password"
+                    required
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    placeholder="Enter your current account password to authorize"
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 py-2.5 pl-9 pr-3 text-slate-900 dark:text-slate-100 focus:border-red-500 focus:outline-none"
+                  />
+                </div>
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Security safeguard protected by sliding-window rate limiting.
+                </p>
+              </div>
+
+              <div className="mt-5 flex justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsInviteModalOpen(false)}
+                  className="rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-2 font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="rounded-xl bg-gradient-to-r from-red-600 to-rose-600 px-5 py-2 font-semibold text-white shadow-sm shadow-red-600/30 hover:from-red-500 hover:to-rose-500 disabled:opacity-60 transition-all cursor-pointer"
+                >
+                  {saving ? 'Creating Staff Account...' : 'Send Staff Invitation'}
+                </button>
+              </div>
+            </form>
+          </>
         )}
       </Modal>
 

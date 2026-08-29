@@ -212,7 +212,7 @@ export class CreateStaffProvider {
 
       return {
         success: true,
-        message: 'Staff invitation created successfully',
+        message: 'Staff invitation created and dispatched successfully',
         userId: user.id,
         user_id: user.id,
         email: user.email,
@@ -224,8 +224,6 @@ export class CreateStaffProvider {
         status: user.status,
         createdBy: user.createdBy,
         created_by: user.createdBy,
-        invitationToken: rawInvitationToken,
-        invitation_token: rawInvitationToken,
       };
     } catch (err: any) {
       await queryRunner.rollbackTransaction();

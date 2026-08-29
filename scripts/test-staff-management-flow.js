@@ -241,21 +241,21 @@ async function runTestSuite() {
 
     const rawInviteData = inviteRes.data?.data || inviteRes.data;
     const inviteData = rawInviteData?.user || rawInviteData;
-    console.log('Invite Response Payload:', inviteData);
+    console.log('Invite Response Payload (Sanitized):', inviteData);
     const createdUserId =
       inviteData.userId ||
       inviteData.user_id ||
       inviteData.id;
-    const invitationToken =
-      inviteData.invitationToken ||
-      inviteData.invitation_token ||
-      inviteData.token;
 
     if (!createdUserId)
       throw new Error(
         `Missing created user ID in response: ${JSON.stringify(inviteData)}`,
       );
-    if (!invitationToken) throw new Error('Missing invitationToken in response');
+
+    if (inviteData.invitationToken || inviteData.invitation_token) {
+      throw new Error('SECURITY VIOLATION: Raw invitationToken leaked in HTTP response body!');
+    }
+    console.log('✅ [PASSED] Confirmed raw invitationToken is sanitized and NOT present in HTTP response payload.');
 
     // Verify in database
     const dbUserRes = await pgClient.query(
@@ -278,13 +278,20 @@ async function runTestSuite() {
     }
     console.log('✅ [PASSED] Database record verified with PENDING_ACTIVATION status, createdBy, cinemaId, and token hash.');
 
-    // Verify Outbox Event
+    // Verify Outbox Event & Extract Token for Email Dispatch
     const outboxRes = await pgClient.query(
       `SELECT id, "eventType", payload, status FROM outbox_messages WHERE "eventType" = 'staff.invitation.created' ORDER BY "createdAt" DESC LIMIT 1`,
     );
     const outboxMsg = outboxRes.rows[0];
     if (!outboxMsg) throw new Error('Outbox event staff.invitation.created not found');
-    console.log('✅ [PASSED] Outbox message persisted for transactional event dispatching.');
+
+    const outboxPayload = typeof outboxMsg.payload === 'string' ? JSON.parse(outboxMsg.payload) : outboxMsg.payload;
+    const invitationToken = outboxPayload.invitationToken;
+
+    if (!invitationToken) {
+      throw new Error('Missing invitationToken in Outbox event payload');
+    }
+    console.log('✅ [PASSED] Outbox message persisted containing raw invitationToken strictly for email dispatching.');
 
     // ----------------------------------------------------------------
     // CASE 6: Password Setup & Activation Pipeline

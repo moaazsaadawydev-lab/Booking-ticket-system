@@ -425,7 +425,7 @@ export class AuthProvider implements OnModuleInit {
 
     return {
       success: result.success ?? true,
-      message: result.message || 'Staff member invited successfully',
+      message: result.message || 'Staff invitation created and dispatched successfully',
       userId: result.userId || result.user_id,
       email: result.email,
       fullName: result.fullName || result.full_name,
@@ -433,7 +433,6 @@ export class AuthProvider implements OnModuleInit {
       cinemaId: result.cinemaId || result.cinema_id,
       status: result.status,
       createdBy: result.createdBy || result.created_by,
-      invitationToken: result.invitationToken || result.invitation_token,
     };
   }
 
