@@ -1015,11 +1015,13 @@ export class NotificationController {
     );
 
     const adminDashboardUrl =
-      process.env['ADMIN_DASHBOARD_URL'] || 'http://localhost:3002';
-    // const cleanAdminUrl = adminDashboardUrl.endsWith('/')
-    //   ? adminDashboardUrl.slice(0, -1)
-    //   : adminDashboardUrl;
-    const setupPasswordLink = `${adminDashboardUrl}/auth/setup-password?token=${data.invitationToken}`;
+      process.env['ADMIN_PORTAL_URL'] ||
+      process.env['ADMIN_DASHBOARD_URL'] ||
+      'http://192.168.1.5:3002';
+    const cleanAdminUrl = adminDashboardUrl.endsWith('/')
+      ? adminDashboardUrl.slice(0, -1)
+      : adminDashboardUrl;
+    const setupPasswordLink = `${cleanAdminUrl}/auth/setup-password?token=${data.invitationToken}`;
 
     const notificationDto: NotificationDto = {
       UserId: data.userId,

@@ -123,11 +123,20 @@ export class CreateStaffProvider {
       });
     }
 
-    if (actorRole === 'admin' && newRole === 'super_admin') {
-      throw new RpcException({
-        code: status.PERMISSION_DENIED,
-        message: 'Admins are not permitted to invite super_admin accounts.',
-      });
+    if (actorRole === 'admin') {
+      const allowedRolesForAdmin = [
+        UserRole.CINEMA_ADMIN,
+        UserRole.ACCOUNTANT,
+        UserRole.MARKETING,
+        UserRole.GATE_CHECKER,
+        UserRole.STAFF,
+      ];
+      if (!allowedRolesForAdmin.includes(newRole as UserRole)) {
+        throw new RpcException({
+          code: status.PERMISSION_DENIED,
+          message: 'Admins cannot create other Admin or Super Admin accounts',
+        });
+      }
     }
 
     // 4. Cinema Assignment Constraints

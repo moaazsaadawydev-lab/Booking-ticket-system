@@ -100,6 +100,7 @@ services:
       - libs/env/.env.docker-development
     environment:
       - NODE_ENV=docker-development
+      - ADMIN_PORTAL_URL=${ADMIN_PORTAL_URL:-http://192.168.1.5:3002}
     depends_on:
       postgres:
         condition: service_healthy
@@ -195,8 +196,10 @@ services:
       - libs/env/.env.docker-development
     environment:
       - NODE_ENV=docker-development
+      - ADMIN_PORTAL_URL=${ADMIN_PORTAL_URL:-http://192.168.1.5:3002}
     ports:
       - '3000:3000'
+      - '8000:3000'
     depends_on:
       users-service:
         condition: service_started
@@ -227,7 +230,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://192.168.1.5:3000/api/v1}
+      - NEXT_PUBLIC_MINIO_HOST=${NEXT_PUBLIC_MINIO_HOST:-http://192.168.1.5:9000}
     ports:
       - '3001:3000'
     depends_on:
@@ -243,7 +247,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://192.168.1.5:3000/api/v1}
+      - NEXT_PUBLIC_MINIO_HOST=${NEXT_PUBLIC_MINIO_HOST:-http://192.168.1.5:9000}
     ports:
       - '3002:3000'
     depends_on:

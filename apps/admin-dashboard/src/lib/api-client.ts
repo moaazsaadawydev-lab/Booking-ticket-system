@@ -1,12 +1,20 @@
 import axios, { AxiosInstance } from 'axios';
 import { Movie, Cinema, Auditorium, Showtime } from './types';
 
-const BASE_URL =
+export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== 'undefined' ? '/api/v1' : 'http://localhost:3000/api/v1');
+  (typeof window !== 'undefined'
+    ? `${window.location.protocol}//${window.location.hostname}:3000/api/v1`
+    : 'http://localhost:3000/api/v1');
+
+export const WS_URL =
+  process.env.NEXT_PUBLIC_WS_URL ||
+  (typeof window !== 'undefined'
+    ? `ws://${window.location.hostname}:3000`
+    : 'ws://localhost:3000');
 
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: BASE_URL,
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -25,7 +33,13 @@ export function resolveImageUrl(url?: string | null): string {
   ) {
     return trimmed;
   }
-  const minioHost = process.env.NEXT_PUBLIC_MINIO_HOST || 'http://localhost:9000';
+
+  const minioHost =
+    process.env.NEXT_PUBLIC_MINIO_HOST ||
+    (typeof window !== 'undefined'
+      ? `${window.location.protocol}//${window.location.hostname}:9000`
+      : 'http://localhost:9000');
+
   const cleanPath = trimmed.startsWith('/') ? trimmed.slice(1) : trimmed;
   if (cleanPath.startsWith('avatars/') || cleanPath.startsWith('profile-photos/')) {
     const withoutPrefix = cleanPath.replace(/^profile-photos\//, '');

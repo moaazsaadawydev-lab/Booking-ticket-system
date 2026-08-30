@@ -7,6 +7,12 @@ export const metadata = {
   description: 'Enterprise Cinema Management, Movie Catalog & Ticketing Dashboard',
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export default function RootLayout({
   children,
 }: {

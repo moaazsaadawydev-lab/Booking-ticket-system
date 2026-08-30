@@ -1,13 +1,16 @@
-'use client';
-
 import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../lib/auth-context';
 import { Badge } from '../ui/Badge';
 import ThemeToggle from './ThemeToggle';
 import { resolveImageUrl } from '../../lib/api-client';
+import { Menu } from 'lucide-react';
 
-export const TopNavbar: React.FC = () => {
+interface TopNavbarProps {
+  onOpenMobileMenu?: () => void;
+}
+
+export const TopNavbar: React.FC<TopNavbarProps> = ({ onOpenMobileMenu }) => {
   const pathname = usePathname();
   const { user, role } = useAuth();
   const [imgError, setImgError] = useState(false);
@@ -29,32 +32,44 @@ export const TopNavbar: React.FC = () => {
   const avatarSrc = user?.avatarUrl ? resolveImageUrl(user.avatarUrl) : '';
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between border-b border-slate-200 dark:border-slate-800/80 bg-white/90 dark:bg-[#080c14]/90 px-6 backdrop-blur-md">
+    <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between border-b border-slate-200 dark:border-slate-800/80 bg-white/90 dark:bg-[#080c14]/90 px-3 sm:px-6 backdrop-blur-md">
       {/* Breadcrumb & Brand Identifier */}
-      <div className="flex items-center gap-2 text-xs">
-        <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-slate-100">
+      <div className="flex items-center gap-2 text-xs overflow-hidden">
+        {/* Hamburger Menu on Mobile */}
+        <button
+          type="button"
+          onClick={onOpenMobileMenu}
+          className="lg:hidden rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-colors cursor-pointer"
+          title="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+
+        <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-slate-100 shrink-0">
           <span className="h-2 w-2 rounded-full bg-red-600 dark:bg-red-500 animate-pulse shadow-sm shadow-red-500" />
           <span className="tracking-wide">Aflamak Cinemas</span>
         </div>
-        {pathSegments.length > 0 && <span className="text-slate-400">/</span>}
-        {pathSegments.map((segment, idx) => (
-          <React.Fragment key={idx}>
-            <span
-              className={
-                idx === pathSegments.length - 1
-                  ? 'font-bold text-red-600 dark:text-red-400'
-                  : 'text-slate-500 dark:text-slate-400'
-              }
-            >
-              {segment}
-            </span>
-            {idx < pathSegments.length - 1 && <span className="text-slate-400">/</span>}
-          </React.Fragment>
-        ))}
+        {pathSegments.length > 0 && <span className="text-slate-400 hidden sm:inline">/</span>}
+        <div className="hidden sm:flex items-center gap-1 truncate">
+          {pathSegments.map((segment, idx) => (
+            <React.Fragment key={idx}>
+              <span
+                className={
+                  idx === pathSegments.length - 1
+                    ? 'font-bold text-red-600 dark:text-red-400 truncate'
+                    : 'text-slate-500 dark:text-slate-400'
+                }
+              >
+                {segment}
+              </span>
+              {idx < pathSegments.length - 1 && <span className="text-slate-400">/</span>}
+            </React.Fragment>
+          ))}
+        </div>
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {/* Live Booking Pulse */}
         <div className="hidden lg:flex items-center gap-1.5 rounded-full border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />

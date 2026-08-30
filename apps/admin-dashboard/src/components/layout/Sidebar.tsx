@@ -16,6 +16,7 @@ import {
   Clapperboard,
   Sparkles,
   Ticket,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import { resolveImageUrl } from '../../lib/api-client';
@@ -23,6 +24,8 @@ import { resolveImageUrl } from '../../lib/api-client';
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 interface NavItem {
@@ -40,7 +43,12 @@ interface NavGroup {
   items: NavItem[];
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  collapsed,
+  onToggle,
+  mobileOpen = false,
+  onMobileClose,
+}) => {
   const pathname = usePathname();
   const { user, role, logout } = useAuth();
   const [imgError, setImgError] = useState(false);
@@ -96,23 +104,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
           name: 'Staff & Gate Checkers',
           href: '/dashboard/users',
           icon: Users,
-          badge: 'Super Admin',
-          badgeVariant: 'gold',
-          roles: ['super_admin'],
+          roles: ['super_admin', 'admin'],
         },
       ],
     },
   ];
 
+  const isExpanded = !collapsed || mobileOpen;
+
   return (
     <aside
-      className={`fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#080c14] transition-all duration-200 ${
-        collapsed ? 'w-16' : 'w-64'
+      className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#080c14] transition-all duration-300 ${
+        mobileOpen ? 'translate-x-0' : '-translate-x-full'
+      } lg:translate-x-0 ${
+        collapsed ? 'lg:w-16 w-64' : 'w-64'
       }`}
     >
       {/* Brand Header */}
       <div className="flex h-14 items-center justify-between border-b border-slate-100 dark:border-slate-800/80 px-3.5">
-        {!collapsed ? (
+        {isExpanded ? (
           <div className="flex items-center gap-2.5">
             <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-600 via-rose-600 to-amber-600 text-white font-bold text-xs shadow-md shadow-red-600/30">
               <Clapperboard className="h-4 w-4" />
@@ -139,17 +149,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
           </div>
         )}
 
-        <button
-          onClick={onToggle}
-          className="rounded-md p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
-        </button>
+        <div className="flex items-center gap-1">
+          {/* Close button on mobile */}
+          <button
+            onClick={onMobileClose}
+            className="lg:hidden rounded-md p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200"
+            title="Close menu"
+          >
+            <X className="h-4 w-4" />
+          </button>
+
+          {/* Desktop collapse button */}
+          <button
+            onClick={onToggle}
+            className="hidden lg:inline-flex rounded-md p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Navigation */}
@@ -163,7 +185,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
 
           return (
             <div key={groupIdx} className="space-y-1">
-              {!collapsed && (
+              {isExpanded && (
                 <div className="px-2.5 pb-1 text-[10px] font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
                   {group.label}
                 </div>
@@ -179,12 +201,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={() => onMobileClose?.()}
                     className={`group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all ${
                       isActive
                         ? 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-400 font-semibold border border-red-200/60 dark:border-red-900/60 active-nav-glow'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
                     }`}
-                    title={collapsed ? item.name : undefined}
+                    title={!isExpanded ? item.name : undefined}
                   >
                     <Icon
                       className={`h-4 w-4 shrink-0 transition-colors ${
@@ -193,7 +216,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
                           : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'
                       }`}
                     />
-                    {!collapsed && (
+                    {isExpanded && (
                       <div className="flex flex-1 items-center justify-between overflow-hidden">
                         <span className="truncate">{item.name}</span>
                         {item.pulse && (
@@ -219,7 +242,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
 
       {/* Operational System Footer */}
       <div className="border-t border-slate-100 dark:border-slate-800/80 p-2.5">
-        {!collapsed ? (
+        {isExpanded ? (
           <div className="rounded-xl border border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-[#0f172a] p-2.5 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 overflow-hidden">

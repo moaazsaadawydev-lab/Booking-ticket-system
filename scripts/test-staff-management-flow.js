@@ -158,9 +158,9 @@ async function runTestSuite() {
     console.log('🧹 Cleared rate limit counter for next test cases.');
 
     // ----------------------------------------------------------------
-    // CASE 3: RBAC Enforcement (Standard Admin inviting Super Admin -> 403)
+    // CASE 3: RBAC Enforcement (Standard Admin inviting Super Admin or Admin -> 403)
     // ----------------------------------------------------------------
-    console.log('\n🧪 CASE 3: RBAC Hierarchy Enforcement (Admin -> Super Admin => 403)');
+    console.log('\n🧪 CASE 3: RBAC Hierarchy Enforcement (Admin -> Super Admin & Admin => 403)');
     try {
       await axios.post(
         `${API_BASE_URL}/users/staff`,
@@ -176,6 +176,30 @@ async function runTestSuite() {
     } catch (err) {
       if (err.response?.status === 403) {
         console.log('✅ [PASSED] Received expected 403 Forbidden when Admin tries to invite Super Admin.');
+      } else {
+        throw new Error(
+          `Expected status 403, received ${err.response?.status}: ${JSON.stringify(
+            err.response?.data,
+          )}`,
+        );
+      }
+    }
+
+    try {
+      await axios.post(
+        `${API_BASE_URL}/users/staff`,
+        {
+          fullName: 'Another Admin',
+          email: 'new.admin@test-staff.com',
+          role: 'admin',
+          adminPassword: adminPassword,
+        },
+        { headers: { Authorization: `Bearer ${standardAdminToken}` } },
+      );
+      throw new Error('Expected 403 Forbidden when Admin invites Admin, but request succeeded.');
+    } catch (err) {
+      if (err.response?.status === 403) {
+        console.log('✅ [PASSED] Received expected 403 Forbidden when Admin tries to invite another Admin.');
       } else {
         throw new Error(
           `Expected status 403, received ${err.response?.status}: ${JSON.stringify(

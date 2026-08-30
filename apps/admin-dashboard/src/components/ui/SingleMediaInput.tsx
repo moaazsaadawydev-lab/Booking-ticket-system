@@ -113,7 +113,7 @@ export default function SingleMediaInput({
         </div>
       </div>
 
-      <div className="flex items-start gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start gap-3">
         {/* Preview Thumbnail Card */}
         <div
           className={`relative shrink-0 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-900 flex items-center justify-center ${aspectClass}`}

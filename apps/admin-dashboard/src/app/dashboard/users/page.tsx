@@ -514,9 +514,11 @@ export default function UsersManagementPage() {
                     <option value="staff">Staff (Theater Attendant)</option>
                     <option value="accountant">Accountant (Financial Auditor)</option>
                     <option value="marketing">Marketing (Promotions Specialist)</option>
-                    <option value="admin">Admin (System Co-Admin)</option>
                     {currentRole === 'super_admin' && (
-                      <option value="super_admin">Super Admin (Global Authority)</option>
+                      <>
+                        <option value="admin">Admin (System Co-Admin)</option>
+                        <option value="super_admin">Super Admin (Global Authority)</option>
+                      </>
                     )}
                   </select>
                 </div>

@@ -14,6 +14,8 @@
     "start:catalog:dev": "cross-env NODE_ENV=development nx serve catalog --watch --verbose",
     "start:notifications:dev": "cross-env NODE_ENV=development nx serve Notifications --watch --verbose",
     "start:media:dev": "cross-env NODE_ENV=development nx serve Media --watch",
+    "start:dashboard:dev": "cross-env NODE_ENV=development nx serve admin-dashboard --hostname=0.0.0.0 --port=3002",
+    "start:cinema:dev": "cross-env NODE_ENV=development nx serve cinema-web --hostname=0.0.0.0 --port=3001",
     "start:all:dev": "cross-env NODE_ENV=development nx run-many --target=serve --all --parallel --watch",
     "start:users:build": "cross-env NODE_ENV=development nx build users",
     "start:auth:build": "cross-env NODE_ENV=development nx build auth",
