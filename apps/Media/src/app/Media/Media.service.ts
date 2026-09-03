@@ -198,5 +198,3 @@ export class MediaService {
     };
   }
 }
-
-// Github
